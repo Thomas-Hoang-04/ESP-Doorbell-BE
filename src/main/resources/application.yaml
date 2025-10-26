@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: ESP-Doorbell
+
+  config:
+    import: optional:secrets.yaml
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+    properties:
+      hibernate.jdbc.time_zone: UTC
+
+    open-in-view: true
+
+  jackson:
+    time-zone: UTC
+
+  # Temporarily disable security
+  security:
+    user:
+      name: admin
+      password: password
+
+
+
