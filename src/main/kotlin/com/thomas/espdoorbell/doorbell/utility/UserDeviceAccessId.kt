@@ -7,6 +7,6 @@ import java.util.UUID
 
 @Embeddable
 data class UserDeviceAccessId(
-    var userId: UUID,
-    val deviceId: UUID,
+    val userId: UUID? = null,
+    val deviceId: UUID? = null,
 ): Serializable

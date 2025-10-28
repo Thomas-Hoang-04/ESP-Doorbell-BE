@@ -1,10 +1,9 @@
-package com.thomas.espdoorbell.doorbell.model.entity
+package com.thomas.espdoorbell.doorbell.model.entity.user
 
+import com.thomas.espdoorbell.doorbell.model.entity.Devices
 import com.thomas.espdoorbell.doorbell.model.types.DeviceAccess
 import com.thomas.espdoorbell.doorbell.model.types.UserRole
 import com.thomas.espdoorbell.doorbell.utility.UserDeviceAccessId
-import jakarta.persistence.AttributeOverride
-import jakarta.persistence.AttributeOverrides
 import jakarta.persistence.Column
 import jakarta.persistence.EmbeddedId
 import jakarta.persistence.Entity
@@ -23,11 +22,7 @@ import java.time.OffsetDateTime
 @Table(name = "user_device_access")
 class UserDeviceAccess(
     @EmbeddedId
-    @AttributeOverrides(
-        AttributeOverride(name = "userId", column = Column(name = "user_id")),
-        AttributeOverride(name = "deviceId", column = Column(name = "device_id"))
-    )
-    private val id: UserDeviceAccessId,
+    private val id: UserDeviceAccessId = UserDeviceAccessId(),
 
     @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("userId")
@@ -45,11 +40,11 @@ class UserDeviceAccess(
     private val role: UserRole = UserRole.MEMBER,
 
     @Column(name = "updated_at")
-    private val grantedAt: OffsetDateTime = OffsetDateTime.now(),
+    private val updatedAt: OffsetDateTime = OffsetDateTime.now(),
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "updated_by", referencedColumnName = "id")
-    private val grantedBy: UserCredentials?,
+    private val updatedBy: UserCredentials? = null,
 
     @Enumerated(value = EnumType.STRING)
     @JdbcType(PostgreSQLEnumJdbcType::class)

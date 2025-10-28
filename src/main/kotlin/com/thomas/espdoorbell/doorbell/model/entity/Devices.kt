@@ -1,7 +1,12 @@
 package com.thomas.espdoorbell.doorbell.model.entity
 
+import com.thomas.espdoorbell.doorbell.model.entity.base.BaseEntity
+import com.thomas.espdoorbell.doorbell.model.entity.events.Events
+import jakarta.persistence.CascadeType
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
+import jakarta.persistence.FetchType
+import jakarta.persistence.OneToMany
 import jakarta.persistence.Table
 import jakarta.validation.constraints.Max
 import jakarta.validation.constraints.Min
@@ -40,4 +45,7 @@ class Devices(
 
     @Column(name = "last_online")
     private val lastOnline: OffsetDateTime? = null,
-): BaseEntity()
+): BaseEntity() {
+    @OneToMany(mappedBy = "device_id", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
+    private val eventLogs: MutableList<Events> = mutableListOf()
+}

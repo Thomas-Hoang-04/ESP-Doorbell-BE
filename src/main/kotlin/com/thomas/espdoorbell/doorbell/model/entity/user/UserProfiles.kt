@@ -1,5 +1,6 @@
-package com.thomas.espdoorbell.doorbell.model.entity
+package com.thomas.espdoorbell.doorbell.model.entity.user
 
+import com.thomas.espdoorbell.doorbell.model.entity.base.BaseEntityNoAutoId
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.JoinColumn
@@ -33,9 +34,9 @@ class UserProfiles(
 
     @OneToOne
     @MapsId
-    @JoinColumn(name = "id", nullable = false)
+    @JoinColumn(name = "id", referencedColumnName = "id", nullable = false)
     private val cred: UserCredentials,
-): BaseEntity() {
+): BaseEntityNoAutoId() {
     @PrePersist
     @PreUpdate
     fun validateContacts() {

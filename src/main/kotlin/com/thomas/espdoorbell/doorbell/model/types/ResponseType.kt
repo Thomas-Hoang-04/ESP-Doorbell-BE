@@ -1,5 +1,5 @@
 package com.thomas.espdoorbell.doorbell.model.types
 
 enum class ResponseType{
-    ANSWERED, MISSED, DECLINED, AUTO_RESPONSE
+    ANSWERED, MISSED, DECLINED, AUTO_RESPONSE, PENDING,
 }

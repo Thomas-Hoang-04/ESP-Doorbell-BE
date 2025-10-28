@@ -1,5 +1,7 @@
-package com.thomas.espdoorbell.doorbell.model.entity
+package com.thomas.espdoorbell.doorbell.model.entity.user
 
+import com.thomas.espdoorbell.doorbell.model.entity.events.Events
+import com.thomas.espdoorbell.doorbell.model.entity.base.BaseEntity
 import com.thomas.espdoorbell.doorbell.model.types.AuthProvider
 import jakarta.persistence.*
 import org.hibernate.annotations.JdbcType

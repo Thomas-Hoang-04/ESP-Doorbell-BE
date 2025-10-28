@@ -1,8 +1,6 @@
-package com.thomas.espdoorbell.doorbell.model.entity
+package com.thomas.espdoorbell.doorbell.model.entity.base
 
 import jakarta.persistence.Column
-import jakarta.persistence.GeneratedValue
-import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.MappedSuperclass
 import org.hibernate.annotations.CreationTimestamp
@@ -12,9 +10,8 @@ import java.util.UUID
 
 @Suppress("unused")
 @MappedSuperclass
-abstract class BaseEntity {
+abstract class BaseEntityNoAutoId {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", updatable = false)
     private lateinit var _id: UUID
 
