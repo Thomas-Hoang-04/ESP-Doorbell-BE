@@ -1,5 +1,6 @@
 package com.thomas.espdoorbell.doorbell.model.entity
 
+import com.thomas.espdoorbell.doorbell.model.dto.device.DeviceDto
 import com.thomas.espdoorbell.doorbell.model.entity.base.BaseEntity
 import com.thomas.espdoorbell.doorbell.model.entity.events.Events
 import com.thomas.espdoorbell.doorbell.model.entity.user.UserDeviceAccess
@@ -52,4 +53,17 @@ class Devices(
 
     @OneToMany(mappedBy = "device", cascade = [CascadeType.ALL], fetch = FetchType.LAZY, orphanRemoval = true)
     private val accessAssignments: MutableSet<UserDeviceAccess> = mutableSetOf()
+
+    fun toDto(): DeviceDto = DeviceDto(
+        id = id,
+        deviceIdentifier = deviceId,
+        displayName = name,
+        locationDescription = location,
+        modelName = model,
+        firmwareVersion = fwVersion,
+        active = isActive,
+        batteryLevelPercent = batteryLevel,
+        signalStrengthDbm = signalStrength,
+        lastOnlineAt = lastOnline
+    )
 }

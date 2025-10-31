@@ -1,6 +1,8 @@
 package com.thomas.espdoorbell.doorbell.model.entity.events
 
+import com.thomas.espdoorbell.doorbell.model.dto.event.NotificationDto
 import com.thomas.espdoorbell.doorbell.model.types.NotificationMethod
+import com.thomas.espdoorbell.doorbell.model.entity.user.UserCredentials
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
@@ -34,6 +36,10 @@ class Notifications(
     @Column(name = "recipient", nullable = false, length = 255)
     private val recipient: String,
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "recipient_user_id", referencedColumnName = "id")
+    private val recipientUser: UserCredentials? = null,
+
     @Column(name = "sent_at", insertable = false, updatable = false)
     private val sentAt: OffsetDateTime? = null,
 
@@ -53,4 +59,16 @@ class Notifications(
     fun validateRecipient() {
         require(recipient.isNotBlank()) { "Notification recipient must not be blank" }
     }
+
+    fun toDto(): NotificationDto = NotificationDto(
+        id = id,
+        eventId = event.id,
+        typeCode = notificationType.name,
+        typeLabel = notificationType.toDisplayName(),
+        recipientTarget = recipient,
+        recipientUserId = recipientUser?.id,
+        sentAt = sentAt,
+        successful = success,
+        errorMessage = errorMessage,
+    )
 }

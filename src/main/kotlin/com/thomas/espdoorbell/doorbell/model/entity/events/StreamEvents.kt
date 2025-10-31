@@ -1,5 +1,6 @@
 package com.thomas.espdoorbell.doorbell.model.entity.events
 
+import com.thomas.espdoorbell.doorbell.model.dto.event.EventStreamDto
 import com.thomas.espdoorbell.doorbell.model.entity.base.BaseEntityNoAutoId
 import com.thomas.espdoorbell.doorbell.model.types.StreamStatus
 import jakarta.persistence.AttributeOverride
@@ -64,4 +65,17 @@ class StreamEvents(
             }
         }
     }
+
+    fun toDto(): EventStreamDto = EventStreamDto(
+        eventId = id,
+        statusCode = streamStatus.name,
+        statusLabel = streamStatus.toDisplayName(),
+        startedAt = startedAt,
+        endedAt = endedAt,
+        errorMessage = errorMessage,
+        retryCount = retryCount,
+        hlsPlaylistUrl = hlsPlaylistUrl,
+        rawVideoPath = rawVideoPath,
+        rawAudioPath = rawAudioPath
+    )
 }

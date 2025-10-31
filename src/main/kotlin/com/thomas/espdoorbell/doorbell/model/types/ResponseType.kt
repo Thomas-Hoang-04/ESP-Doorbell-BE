@@ -6,5 +6,14 @@ enum class ResponseType {
     DECLINED,
     AUTO_RESPONSE,
     SYSTEM_RESPONSE,
-    PENDING,
+    PENDING;
+
+    fun toDisplayName(): String = when (this) {
+        ANSWERED -> "Answered"
+        MISSED -> "Missed"
+        DECLINED -> "Declined"
+        AUTO_RESPONSE -> "Auto Responded"
+        SYSTEM_RESPONSE -> "System Responded"
+        PENDING -> "Awaiting Response"
+    }
 }

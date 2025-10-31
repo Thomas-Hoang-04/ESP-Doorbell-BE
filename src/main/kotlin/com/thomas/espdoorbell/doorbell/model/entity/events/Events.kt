@@ -1,5 +1,6 @@
 package com.thomas.espdoorbell.doorbell.model.entity.events
 
+import com.thomas.espdoorbell.doorbell.model.dto.event.EventDto
 import com.thomas.espdoorbell.doorbell.model.entity.Devices
 import com.thomas.espdoorbell.doorbell.model.entity.base.BaseEntity
 import com.thomas.espdoorbell.doorbell.model.entity.user.UserCredentials
@@ -67,4 +68,21 @@ class Events(
             }
         }
     }
+
+    fun toDto(withNotifications: Boolean): EventDto = EventDto(
+        id = id,
+        deviceId = device.id,
+        deviceName = device.toDto().displayName,
+        occurredAt = eventTimestamp,
+        eventTypeCode = eventType.name,
+        eventTypeLabel = eventType.toDisplayName(),
+        responseTypeCode = responseType.name,
+        responseTypeLabel = responseType.toDisplayName(),
+        responseTimestamp = responseTimestamp,
+        responderUserId = respondedBy?.id,
+        responderDisplayName = respondedBy?.preferredDisplayName(),
+        stream = stream?.toDto(),
+        media = media?.toDto(),
+        notifications = if (withNotifications) notifications.map { it.toDto() } else emptyList(),
+    )
 }

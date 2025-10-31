@@ -1,6 +1,7 @@
 package com.thomas.espdoorbell.doorbell.model.entity.user
 
 import com.thomas.espdoorbell.doorbell.model.entity.Devices
+import com.thomas.espdoorbell.doorbell.model.dto.user.UserDeviceAccessDto
 import com.thomas.espdoorbell.doorbell.model.types.DeviceAccess
 import com.thomas.espdoorbell.doorbell.model.types.UserRole
 import com.thomas.espdoorbell.doorbell.utility.UserDeviceAccessId
@@ -50,4 +51,16 @@ class UserDeviceAccess(
     @JdbcType(PostgreSQLEnumJdbcType::class)
     @Column(name = "granted_status", nullable = false)
     private val accessStatus: DeviceAccess = DeviceAccess.GRANTED,
-)
+) {
+    fun toDto(): UserDeviceAccessDto = UserDeviceAccessDto(
+        userId = user.id,
+        deviceId = device.id,
+        roleCode = role.name,
+        roleLabel = role.toDisplayName(),
+        accessStatusCode = accessStatus.name,
+        accessStatusLabel = accessStatus.toDisplayName(),
+        updatedAt = updatedAt,
+        updatedByUserId = updatedBy?.id,
+        updatedByUsername = updatedBy?.preferredDisplayName()
+    )
+}

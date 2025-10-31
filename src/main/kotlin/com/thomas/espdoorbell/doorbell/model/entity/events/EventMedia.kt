@@ -1,5 +1,6 @@
 package com.thomas.espdoorbell.doorbell.model.entity.events
 
+import com.thomas.espdoorbell.doorbell.model.dto.event.EventMediaDto
 import com.thomas.espdoorbell.doorbell.model.entity.base.BaseEntityNoAutoId
 import jakarta.persistence.AttributeOverride
 import jakarta.persistence.Column
@@ -51,4 +52,15 @@ class EventMedia(
         videoUrl?.let { require(it.length <= 500) { "Video URL exceeds maximum length" } }
         thumbnailUrl?.let { require(it.length <= 500) { "Thumbnail URL exceeds maximum length" } }
     }
+
+    fun toDto(): EventMediaDto = EventMediaDto(
+        eventId = id,
+        videoUrl = videoUrl,
+        thumbnailUrl = thumbnailUrl,
+        durationSeconds = durationSeconds,
+        videoCodec = videoCodec,
+        audioCodec = audioCodec,
+        resolution = resolution,
+        fileSizeBytes = fileSizeBytes,
+    )
 }

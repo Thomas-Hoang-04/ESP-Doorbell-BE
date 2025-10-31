@@ -1,5 +1,6 @@
 package com.thomas.espdoorbell.doorbell.model.entity.user
 
+import com.thomas.espdoorbell.doorbell.model.dto.user.UserCredentialDto
 import com.thomas.espdoorbell.doorbell.model.entity.base.BaseEntity
 import com.thomas.espdoorbell.doorbell.model.entity.events.Events
 import com.thomas.espdoorbell.doorbell.model.types.AuthProvider
@@ -44,7 +45,7 @@ class UserCredentials(
     @Column(name = "last_login")
     private val lastLogin: OffsetDateTime? = null,
 
-    @OneToOne(mappedBy = "cred", cascade = [CascadeType.ALL], optional = true)
+    @OneToOne(mappedBy = "cred", cascade = [CascadeType.ALL], optional = false)
     private val profile: UserProfiles
 ): BaseEntity() {
     @OneToMany(mappedBy = "user", cascade = [CascadeType.ALL], fetch = FetchType.LAZY, orphanRemoval = true)
@@ -73,4 +74,23 @@ class UserCredentials(
             }
         }
     }
+
+    fun preferredDisplayName(): String = profile.displayName
+
+    fun toDto(includeAccessAssignments: Boolean = true): UserCredentialDto = UserCredentialDto(
+        id = id,
+        authProviderCode = authProvider.name,
+        authProviderLabel = authProvider.toDisplayName(),
+        username = username,
+        oauthProviderId = oauthProviderId,
+        isActive = isActive,
+        isEmailVerified = isEmailVerified,
+        lastLoginAt = lastLogin,
+        profile = profile.toDto(),
+        deviceAccess = if (includeAccessAssignments) {
+            deviceAccessAssignments.map { it.toDto() }
+        } else {
+            emptyList()
+        },
+    )
 }

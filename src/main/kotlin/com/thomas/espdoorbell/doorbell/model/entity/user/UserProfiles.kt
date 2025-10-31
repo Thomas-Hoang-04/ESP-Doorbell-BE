@@ -1,5 +1,6 @@
 package com.thomas.espdoorbell.doorbell.model.entity.user
 
+import com.thomas.espdoorbell.doorbell.model.dto.user.UserProfileDto
 import com.thomas.espdoorbell.doorbell.model.entity.base.BaseEntityNoAutoId
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
@@ -16,7 +17,7 @@ import java.time.OffsetTime
 @Table(name = "user_profiles")
 class UserProfiles(
     @Column(name = "display_name", nullable = false)
-    private val displayName: String,
+    private val _displayName: String,
 
     @Column(name = "phone_number", length = 16)
     private val phoneNum: String? = null,
@@ -59,4 +60,17 @@ class UserProfiles(
             }
         }
     }
+
+    val displayName: String
+        get() = _displayName
+
+    fun toDto(): UserProfileDto = UserProfileDto(
+        id = id,
+        displayName = _displayName,
+        emailAddress = email,
+        phoneNumber = phoneNum,
+        notificationsEnabled = notificationsEnabled,
+        quietHoursStart = quietHoursStart,
+        quietHoursEnd = quietHoursEnd,
+    )
 }
