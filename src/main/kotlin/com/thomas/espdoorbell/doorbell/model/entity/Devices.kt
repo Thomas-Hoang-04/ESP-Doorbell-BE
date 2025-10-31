@@ -2,6 +2,7 @@ package com.thomas.espdoorbell.doorbell.model.entity
 
 import com.thomas.espdoorbell.doorbell.model.entity.base.BaseEntity
 import com.thomas.espdoorbell.doorbell.model.entity.events.Events
+import com.thomas.espdoorbell.doorbell.model.entity.user.UserDeviceAccess
 import jakarta.persistence.CascadeType
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
@@ -34,18 +35,21 @@ class Devices(
     private val isActive: Boolean = true,
 
     @Column(name = "battery_level", nullable = false)
-    @param:Min(value = 0)
-    @param:Max(value = 100)
+    @field:Min(value = 0)
+    @field:Max(value = 100)
     private val batteryLevel: Int = 100,
 
     @Column(name = "signal_strength")
-    @param:Min(value = -100)
-    @param:Max(value = 0)
+    @field:Min(value = -100)
+    @field:Max(value = 0)
     private val signalStrength: Int? = null,
 
     @Column(name = "last_online")
     private val lastOnline: OffsetDateTime? = null,
 ): BaseEntity() {
-    @OneToMany(mappedBy = "device_id", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "device", cascade = [CascadeType.ALL], fetch = FetchType.LAZY, orphanRemoval = true)
     private val eventLogs: MutableList<Events> = mutableListOf()
+
+    @OneToMany(mappedBy = "device", cascade = [CascadeType.ALL], fetch = FetchType.LAZY, orphanRemoval = true)
+    private val accessAssignments: MutableSet<UserDeviceAccess> = mutableSetOf()
 }

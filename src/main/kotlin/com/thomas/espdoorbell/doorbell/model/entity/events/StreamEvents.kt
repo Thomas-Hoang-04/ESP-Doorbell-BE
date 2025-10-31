@@ -1,13 +1,13 @@
 package com.thomas.espdoorbell.doorbell.model.entity.events
 
 import com.thomas.espdoorbell.doorbell.model.entity.base.BaseEntityNoAutoId
-import com.thomas.espdoorbell.doorbell.model.entity.user.UserCredentials
-import com.thomas.espdoorbell.doorbell.model.types.ResponseType
 import com.thomas.espdoorbell.doorbell.model.types.StreamStatus
+import jakarta.persistence.AttributeOverride
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
 import jakarta.persistence.Enumerated
+import jakarta.persistence.FetchType
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.MapsId
 import jakarta.persistence.OneToOne
@@ -21,16 +21,17 @@ import java.time.OffsetDateTime
 
 @Entity
 @Table(name = "event_streams")
+@AttributeOverride(name = "_id", column = Column(name = "event_id", updatable = false))
 class StreamEvents(
-    @OneToOne
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
     @MapsId
-    @JoinColumn(name = "event_id", referencedColumnName = "id", nullable = false)
+    @JoinColumn(name = "event_id", referencedColumnName = "id", nullable = false, updatable = false)
     private val event: Events,
 
     @Enumerated(value = EnumType.STRING)
     @JdbcType(PostgreSQLEnumJdbcType::class)
     @Column(name = "stream_status", nullable = false)
-    private val resType: StreamStatus = StreamStatus.STREAMING,
+    private val streamStatus: StreamStatus = StreamStatus.STREAMING,
 
     @Column(name = "stream_started_at", nullable = false)
     private val startedAt: OffsetDateTime = OffsetDateTime.now(),
@@ -39,10 +40,10 @@ class StreamEvents(
     private val endedAt: OffsetDateTime? = null,
 
     @Column(name = "stream_error_message", columnDefinition = "TEXT")
-    private val errMsg: String? = null,
+    private val errorMessage: String? = null,
 
     @Column(name = "stream_retry_count", nullable = false)
-    @param:Min(0)
+    @field:Min(0)
     private val retryCount: Int = 0,
 
     @Column(name = "hls_playlist_url", length = 500)
@@ -56,10 +57,10 @@ class StreamEvents(
 ): BaseEntityNoAutoId() {
     @PrePersist
     @PreUpdate
-    fun validateTime() {
+    fun validateStreamWindow() {
         endedAt?.let {
             require(it.isAfter(startedAt)) {
-                "Response timestamp must be after event timestamp"
+                "Stream end timestamp must be after start timestamp"
             }
         }
     }

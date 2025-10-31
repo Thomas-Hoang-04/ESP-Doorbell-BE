@@ -1,9 +1,19 @@
 package com.thomas.espdoorbell.doorbell.model.entity.user
 
-import com.thomas.espdoorbell.doorbell.model.entity.events.Events
 import com.thomas.espdoorbell.doorbell.model.entity.base.BaseEntity
+import com.thomas.espdoorbell.doorbell.model.entity.events.Events
 import com.thomas.espdoorbell.doorbell.model.types.AuthProvider
-import jakarta.persistence.*
+import jakarta.persistence.CascadeType
+import jakarta.persistence.Column
+import jakarta.persistence.Entity
+import jakarta.persistence.EnumType
+import jakarta.persistence.Enumerated
+import jakarta.persistence.FetchType
+import jakarta.persistence.OneToMany
+import jakarta.persistence.OneToOne
+import jakarta.persistence.PrePersist
+import jakarta.persistence.PreUpdate
+import jakarta.persistence.Table
 import org.hibernate.annotations.JdbcType
 import org.hibernate.dialect.PostgreSQLEnumJdbcType
 import java.time.OffsetDateTime
@@ -33,20 +43,20 @@ class UserCredentials(
 
     @Column(name = "last_login")
     private val lastLogin: OffsetDateTime? = null,
+
+    @OneToOne(mappedBy = "cred", cascade = [CascadeType.ALL], optional = true)
+    private val profile: UserProfiles
 ): BaseEntity() {
-    @OneToOne(mappedBy = "cred", cascade = [CascadeType.ALL], optional = false)
-    private lateinit var profile: UserProfiles
+    @OneToMany(mappedBy = "user", cascade = [CascadeType.ALL], fetch = FetchType.LAZY, orphanRemoval = true)
+    private val deviceAccessAssignments: MutableSet<UserDeviceAccess> = mutableSetOf()
 
-    @OneToOne(mappedBy = "user_id", cascade = [CascadeType.ALL], optional = false)
-    private lateinit var access: UserDeviceAccess
-
-    @OneToMany(mappedBy = "granted_by", orphanRemoval = false, fetch = FetchType.LAZY,
+    @OneToMany(mappedBy = "updatedBy", fetch = FetchType.LAZY,
         cascade = [CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REFRESH])
-    private val accessGrantLogs: MutableList<UserDeviceAccess> = mutableListOf()
+    private val accessAuditTrail: MutableList<UserDeviceAccess> = mutableListOf()
 
-    @OneToMany(mappedBy = "responded_by", orphanRemoval = false, fetch = FetchType.LAZY,
+    @OneToMany(mappedBy = "respondedBy", fetch = FetchType.LAZY,
         cascade = [CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REFRESH])
-    private val eventResponseLogs: MutableList<Events> = mutableListOf()
+    private val eventResponses: MutableList<Events> = mutableListOf()
 
     @PrePersist
     @PreUpdate

@@ -27,12 +27,12 @@ class UserDeviceAccess(
     @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("userId")
     @JoinColumn(name = "user_id", nullable = false)
-    private val cred: UserCredentials,
+    private val user: UserCredentials,
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @MapsId("deviceId")
     @JoinColumn(name = "device_id", nullable = false)
-    private val dev: Devices,
+    private val device: Devices,
 
     @Enumerated(value = EnumType.STRING)
     @JdbcType(PostgreSQLEnumJdbcType::class)

@@ -3,6 +3,7 @@ package com.thomas.espdoorbell.doorbell.model.entity.user
 import com.thomas.espdoorbell.doorbell.model.entity.base.BaseEntityNoAutoId
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
+import jakarta.persistence.FetchType
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.MapsId
 import jakarta.persistence.OneToOne
@@ -32,7 +33,7 @@ class UserProfiles(
     @Column(name = "quiet_hours_end")
     private val quietHoursEnd: OffsetTime? = null,
 
-    @OneToOne
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
     @MapsId
     @JoinColumn(name = "id", referencedColumnName = "id", nullable = false)
     private val cred: UserCredentials,
