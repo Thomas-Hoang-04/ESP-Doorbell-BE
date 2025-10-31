@@ -3,7 +3,7 @@ spring:
     name: ESP-Doorbell
 
   config:
-    import: optional:secrets.yaml
+    import: secrets.yaml
 
   jpa:
     hibernate:
