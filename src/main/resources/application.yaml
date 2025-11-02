@@ -10,18 +10,12 @@ spring:
       ddl-auto: validate
 
     properties:
-      hibernate.jdbc.time_zone: UTC
+      hibernate.jdbc.time_zone: UTC+07:00
 
     open-in-view: true
 
   jackson:
     time-zone: UTC
-
-  # Temporarily disable security
-  security:
-    user:
-      name: admin
-      password: password
 
 
 

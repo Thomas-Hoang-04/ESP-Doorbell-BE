@@ -5,53 +5,112 @@ import com.thomas.espdoorbell.doorbell.model.dto.user.UserDeviceAccessDto
 import com.thomas.espdoorbell.doorbell.model.entity.user.UserCredentials
 import com.thomas.espdoorbell.doorbell.repository.user.UserCredentialRepository
 import com.thomas.espdoorbell.doorbell.repository.user.UserDeviceAccessRepository
-import jakarta.persistence.EntityNotFoundException
-import org.springframework.data.repository.findByIdOrNull
+import com.thomas.espdoorbell.doorbell.repository.user.UserProfileRepository
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toList
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
+import kotlin.collections.emptyList
 
 @Service
 class UserService(
     private val credentialRepository: UserCredentialRepository,
     private val userDeviceAccessRepository: UserDeviceAccessRepository,
+    private val userProfileRepository: UserProfileRepository,
 ) {
+    suspend fun listUsers(includeAccessAssignments: Boolean = false): List<UserCredentialDto> {
+        val users = credentialRepository.findAll().toList()
 
-    @Transactional(readOnly = true)
-    fun listUsers(includeAccessAssignments: Boolean = false): List<UserCredentialDto> =
-        credentialRepository.findAll().map { it.toDto(includeAccessAssignments) }
+        if (users.isEmpty()) return emptyList()
 
-    @Transactional(readOnly = true)
-    fun getUser(userId: UUID, includeAccessAssignments: Boolean = true): UserCredentialDto {
-        val user = credentialRepository.findByIdOrNull(userId)
-            ?: throw EntityNotFoundException("User with id $userId was not found")
+        val ids = users.map { it.id }
 
-        return if (includeAccessAssignments) {
-            val access = userDeviceAccessRepository.findAllByUserId(userId).map { it.toDto() }
-            user.toDto(includeAccessAssignments = false).copy(deviceAccess = access)
-        } else {
-            user.toDto(includeAccessAssignments = false)
+        return coroutineScope {
+            val profiles = async {
+                userProfileRepository
+                    .findAllById(ids)
+                    .toList()
+                    .associateBy { it.id }
+            }
+
+            val accessAssignments = if (includeAccessAssignments) async {
+                userDeviceAccessRepository
+                    .findAllByUserIds(ids)
+                    .toList()
+                    .groupBy { it.user }
+            } else null
+
+            val profileMap = profiles.await()
+            val accessMap = accessAssignments?.await() ?: emptyMap()
+
+            users.mapNotNull { user ->
+                val id = user.id
+                val profile = profileMap[id] ?: return@mapNotNull null
+                val accessList = accessMap[id] ?: emptyList()
+
+                user.toDto(profile, accessList)
+            }
         }
     }
 
-    @Transactional(readOnly = true)
-    fun findByUsername(username: String, includeAccessAssignments: Boolean = false): UserCredentialDto? =
-        credentialRepository.findByUsername(username)
-            .map { it.toDto(includeAccessAssignments) }
-            .orElse(null)
+    private suspend fun extractDto(users: List<UserCredentials>, includeAccessAssignments: Boolean): UserCredentialDto {
+        if (users.size > 1)
+            throw IllegalAccessException("Multiple users found")
+
+        val user = users.first()
+
+        val userProfile = userProfileRepository.findById(user.id)
+            ?: throw IllegalArgumentException("User profile for user id ${user.id} was not found")
+
+        val accessAssignments = if (includeAccessAssignments) {
+            userDeviceAccessRepository.findAllByUserId(user.id).toList()
+        } else emptyList()
+
+        return user.toDto(userProfile, accessAssignments)
+    }
 
     @Transactional(readOnly = true)
-    fun findByOauthProviderId(oauthProviderId: String, includeAccessAssignments: Boolean = false): UserCredentialDto? =
-        credentialRepository.findByOauthProviderId(oauthProviderId)
-            .map { it.toDto(includeAccessAssignments) }
-            .orElse(null)
+    suspend fun getUser(userId: UUID, includeAccessAssignments: Boolean = true): UserCredentialDto {
+        val user = credentialRepository.findById(userId)
+            ?: throw IllegalArgumentException("User with id $userId was not found")
+
+        val userProfile = userProfileRepository.findById(userId)
+            ?: throw IllegalArgumentException("User profile for user id $userId was not found")
+
+        val accessAssignments = if (includeAccessAssignments) {
+            userDeviceAccessRepository.findAllByUserId(userId).toList()
+        } else emptyList()
+
+        return user.toDto(userProfile, accessAssignments)
+    }
+
+    @Transactional(readOnly = true)
+    suspend fun findByUsername(username: String, includeAccessAssignments: Boolean = true): UserCredentialDto {
+        val users = credentialRepository.findByUsername(username).toList()
+
+        if (users.isEmpty()) throw IllegalArgumentException("User with username $username not found")
+
+        return extractDto(users, includeAccessAssignments)
+    }
+
+    @Transactional(readOnly = true)
+    suspend fun findByOauthProviderId(oauthProviderId: String, includeAccessAssignments: Boolean = false): UserCredentialDto {
+        val users = credentialRepository.findByOauthProviderId(oauthProviderId).toList()
+
+        if (users.isEmpty()) throw IllegalArgumentException("User with username ${oauthProviderId}not found")
+
+        return extractDto(users, includeAccessAssignments)
+    }
 
     @Transactional
-    // TODO: Update HTTP request format here
-    fun registerUser(userCredentials: UserCredentials): UserCredentialDto =
-        credentialRepository.save(userCredentials).toDto(includeAccessAssignments = false)
+    suspend fun registerUser(userCredentials: UserCredentials) {
+        // TODO: Implement user registration
+    }
 
-    @Transactional(readOnly = true)
-    fun listDeviceAccessForUser(userId: UUID): List<UserDeviceAccessDto> =
+    suspend fun listDeviceAccessForUser(userId: UUID): Flow<UserDeviceAccessDto> =
         userDeviceAccessRepository.findAllByUserId(userId).map { it.toDto() }
 }

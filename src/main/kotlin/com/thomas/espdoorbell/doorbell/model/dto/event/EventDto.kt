@@ -8,7 +8,6 @@ import java.util.UUID
 data class EventDto(
     val id: UUID,
     val deviceId: UUID,
-    val deviceName: String?,
     val occurredAt: OffsetDateTime,
     val eventTypeCode: String,
     val eventTypeLabel: String,

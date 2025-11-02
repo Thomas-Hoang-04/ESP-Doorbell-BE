@@ -1,47 +1,40 @@
 package com.thomas.espdoorbell.doorbell.model.entity.user
 
 import com.thomas.espdoorbell.doorbell.model.dto.user.UserProfileDto
-import com.thomas.espdoorbell.doorbell.model.entity.base.BaseEntityNoAutoId
-import jakarta.persistence.Column
-import jakarta.persistence.Entity
-import jakarta.persistence.FetchType
-import jakarta.persistence.JoinColumn
-import jakarta.persistence.MapsId
-import jakarta.persistence.OneToOne
-import jakarta.persistence.PrePersist
-import jakarta.persistence.PreUpdate
-import jakarta.persistence.Table
+import com.thomas.espdoorbell.doorbell.model.entity.base.BaseEntity
+import org.springframework.data.annotation.Transient
+import org.springframework.data.relational.core.mapping.Column
+import org.springframework.data.relational.core.mapping.Table
 import java.time.OffsetTime
+import java.util.UUID
 
-@Entity
-@Table(name = "user_profiles")
+@Table("user_profiles")
 class UserProfiles(
-    @Column(name = "display_name", nullable = false)
+    @Transient
+    private val user: UUID,
+
+    @Column("display_name")
     private val _displayName: String,
 
-    @Column(name = "phone_number", length = 16)
+    @Column("phone_number")
     private val phoneNum: String? = null,
 
-    @Column(name = "email")
+    @Column("email")
     private val email: String? = null,
 
-    @Column(name = "notification_enabled")
+    @Column("notification_enabled")
     private val notificationsEnabled: Boolean = true,
 
-    @Column(name = "quiet_hours_start")
+    @Column("quiet_hours_start")
     private val quietHoursStart: OffsetTime? = null,
 
-    @Column(name = "quiet_hours_end")
+    @Column("quiet_hours_end")
     private val quietHoursEnd: OffsetTime? = null,
+): BaseEntity(id = user) {
 
-    @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @MapsId
-    @JoinColumn(name = "id", referencedColumnName = "id", nullable = false)
-    private val cred: UserCredentials,
-): BaseEntityNoAutoId() {
-    @PrePersist
-    @PreUpdate
-    fun validateContacts() {
+    init { validate() }
+
+    override fun validate() {
         require(!phoneNum.isNullOrBlank() || !email.isNullOrBlank()) {
             "At least one contact method (phone number or email) must be provided"
         }

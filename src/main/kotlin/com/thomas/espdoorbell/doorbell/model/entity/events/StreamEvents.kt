@@ -1,64 +1,52 @@
 package com.thomas.espdoorbell.doorbell.model.entity.events
 
 import com.thomas.espdoorbell.doorbell.model.dto.event.EventStreamDto
-import com.thomas.espdoorbell.doorbell.model.entity.base.BaseEntityNoAutoId
+import com.thomas.espdoorbell.doorbell.model.entity.base.BaseEntity
 import com.thomas.espdoorbell.doorbell.model.types.StreamStatus
-import jakarta.persistence.AttributeOverride
-import jakarta.persistence.Column
-import jakarta.persistence.Entity
-import jakarta.persistence.EnumType
-import jakarta.persistence.Enumerated
-import jakarta.persistence.FetchType
-import jakarta.persistence.JoinColumn
-import jakarta.persistence.MapsId
-import jakarta.persistence.OneToOne
-import jakarta.persistence.PrePersist
-import jakarta.persistence.PreUpdate
-import jakarta.persistence.Table
-import jakarta.validation.constraints.Min
-import org.hibernate.annotations.JdbcType
-import org.hibernate.dialect.PostgreSQLEnumJdbcType
+import org.springframework.data.annotation.CreatedDate
+import org.springframework.data.relational.core.mapping.Column
+import org.springframework.data.relational.core.mapping.Table
 import java.time.OffsetDateTime
+import java.util.UUID
 
-@Entity
 @Table(name = "event_streams")
-@AttributeOverride(name = "_id", column = Column(name = "event_id", updatable = false))
 class StreamEvents(
-    @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @MapsId
-    @JoinColumn(name = "event_id", referencedColumnName = "id", nullable = false, updatable = false)
-    private val event: Events,
+    @Transient
+    private val event: UUID,
 
-    @Enumerated(value = EnumType.STRING)
-    @JdbcType(PostgreSQLEnumJdbcType::class)
-    @Column(name = "stream_status", nullable = false)
+    @Column("stream_status")
     private val streamStatus: StreamStatus = StreamStatus.STREAMING,
 
-    @Column(name = "stream_started_at", nullable = false)
+    @Column("stream_started_at")
+    @CreatedDate
     private val startedAt: OffsetDateTime = OffsetDateTime.now(),
 
-    @Column(name = "stream_ended_at")
+    @Column("stream_ended_at")
     private val endedAt: OffsetDateTime? = null,
 
-    @Column(name = "stream_error_message", columnDefinition = "TEXT")
+    @Column("stream_error_message")
     private val errorMessage: String? = null,
 
-    @Column(name = "stream_retry_count", nullable = false)
-    @field:Min(0)
+    @Column("stream_retry_count")
     private val retryCount: Int = 0,
 
-    @Column(name = "hls_playlist_url", length = 500)
+    @Column("hls_playlist_url")
     private val hlsPlaylistUrl: String? = null,
 
-    @Column(name = "raw_video_path", length = 500)
+    @Column("raw_video_path")
     private val rawVideoPath: String? = null,
 
-    @Column(name = "raw_audio_path", length = 500)
+    @Column("raw_audio_path")
     private val rawAudioPath: String? = null,
-): BaseEntityNoAutoId() {
-    @PrePersist
-    @PreUpdate
-    fun validateStreamWindow() {
+): BaseEntity(id = event) {
+
+    init { validate() }
+
+    override fun validate() {
+        require(retryCount >= 0) { "Retry count must not be negative" }
+        hlsPlaylistUrl?.let { require(it.length <= 500) { "HLS playlist URL exceeds maximum length" } }
+        rawVideoPath?.let { require(it.length <= 500) { "Raw video path exceeds maximum length" } }
+        rawAudioPath?.let { require(it.length <= 500) { "Raw audio path exceeds maximum length" } }
         endedAt?.let {
             require(it.isAfter(startedAt)) {
                 "Stream end timestamp must be after start timestamp"

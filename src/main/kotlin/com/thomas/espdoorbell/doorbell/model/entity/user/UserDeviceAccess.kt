@@ -1,66 +1,59 @@
 package com.thomas.espdoorbell.doorbell.model.entity.user
 
-import com.thomas.espdoorbell.doorbell.model.entity.Devices
 import com.thomas.espdoorbell.doorbell.model.dto.user.UserDeviceAccessDto
 import com.thomas.espdoorbell.doorbell.model.types.DeviceAccess
 import com.thomas.espdoorbell.doorbell.model.types.UserRole
-import com.thomas.espdoorbell.doorbell.utility.UserDeviceAccessId
-import jakarta.persistence.Column
-import jakarta.persistence.EmbeddedId
-import jakarta.persistence.Entity
-import jakarta.persistence.EnumType
-import jakarta.persistence.Enumerated
-import jakarta.persistence.FetchType
-import jakarta.persistence.JoinColumn
-import jakarta.persistence.ManyToOne
-import jakarta.persistence.MapsId
-import jakarta.persistence.Table
-import org.hibernate.annotations.JdbcType
-import org.hibernate.dialect.PostgreSQLEnumJdbcType
+import org.springframework.data.annotation.Id
+import org.springframework.data.annotation.LastModifiedBy
+import org.springframework.data.annotation.LastModifiedDate
+import org.springframework.data.relational.core.mapping.Column
+import org.springframework.data.relational.core.mapping.Table
 import java.time.OffsetDateTime
+import java.util.UUID
 
-@Entity
 @Table(name = "user_device_access")
 class UserDeviceAccess(
-    @EmbeddedId
-    private val id: UserDeviceAccessId = UserDeviceAccessId(),
+    @Column("id")
+    @Id
+    private val id: UUID = UUID.randomUUID(),
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @MapsId("userId")
-    @JoinColumn(name = "user_id", nullable = false)
-    private val user: UserCredentials,
+    @Column( "user_id")
+    private val _user: UUID,
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @MapsId("deviceId")
-    @JoinColumn(name = "device_id", nullable = false)
-    private val device: Devices,
+    @Column("device_id")
+    private val _device: UUID,
 
-    @Enumerated(value = EnumType.STRING)
-    @JdbcType(PostgreSQLEnumJdbcType::class)
-    @Column(name = "role", nullable = false)
+    @Column("role")
     private val role: UserRole = UserRole.MEMBER,
 
-    @Column(name = "updated_at")
+    @Column("updated_at")
+    @LastModifiedDate
     private val updatedAt: OffsetDateTime = OffsetDateTime.now(),
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "updated_by", referencedColumnName = "id")
-    private val updatedBy: UserCredentials? = null,
+    @Column("updated_by")
+    @LastModifiedBy
+    private val updatedBy: UUID? = null,
 
-    @Enumerated(value = EnumType.STRING)
-    @JdbcType(PostgreSQLEnumJdbcType::class)
-    @Column(name = "granted_status", nullable = false)
+    @Column("granted_status")
     private val accessStatus: DeviceAccess = DeviceAccess.GRANTED,
 ) {
-    fun toDto(): UserDeviceAccessDto = UserDeviceAccessDto(
-        userId = user.id,
-        deviceId = device.id,
+    val user: UUID
+        get() = _user
+
+    val device: UUID
+        get() = _device
+
+    fun toDto(
+        username: String? = null,
+    ): UserDeviceAccessDto = UserDeviceAccessDto(
+        userId = _user,
+        deviceId = device,
         roleCode = role.name,
         roleLabel = role.toDisplayName(),
         accessStatusCode = accessStatus.name,
         accessStatusLabel = accessStatus.toDisplayName(),
         updatedAt = updatedAt,
-        updatedByUserId = updatedBy?.id,
-        updatedByUsername = updatedBy?.preferredDisplayName()
+        updatedByUserId = updatedBy,
+        updatedByUsername = username,
     )
 }
