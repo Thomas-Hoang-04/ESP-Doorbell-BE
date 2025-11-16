@@ -38,6 +38,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
     implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
+    implementation("org.eclipse.paho:org.eclipse.paho.mqttv5.client:1.2.5")
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     runtimeOnly("org.postgresql:postgresql")
     implementation("org.postgresql:r2dbc-postgresql")

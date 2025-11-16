@@ -17,5 +17,21 @@ spring:
   jackson:
     time-zone: UTC
 
+streaming:
+  ffmpeg:
+    path: ffmpeg
+    segment-duration: 2
+    video-bitrate: 1M
+    audio-bitrate: 128k
+  buffer:
+    max-size: 50
+    max-reorder-delay-ms: 500
+    max-sequence-gap: 10
+  segment:
+    buffer-count: 5
+    cleanup-threshold: 10
+  working-directory: ./streams
 
-
+mqtt:
+  broker: mqtt://localhost:1883
+  topic: streaming

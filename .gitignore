@@ -42,3 +42,8 @@ out/
 src/main/resources/video/
 
 secrets.*
+
+# Streaming temporary files
+streams/
+
+ws*.txt
