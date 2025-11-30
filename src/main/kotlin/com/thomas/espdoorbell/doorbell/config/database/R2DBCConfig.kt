@@ -1,6 +1,12 @@
-package com.thomas.espdoorbell.doorbell.config
+package com.thomas.espdoorbell.doorbell.config.database
 
-import com.thomas.espdoorbell.doorbell.model.types.*
+import com.thomas.espdoorbell.doorbell.model.principal.UserPrincipal
+import com.thomas.espdoorbell.doorbell.model.types.DeviceAccess
+import com.thomas.espdoorbell.doorbell.model.types.EventType
+import com.thomas.espdoorbell.doorbell.model.types.NotificationMethod
+import com.thomas.espdoorbell.doorbell.model.types.ResponseType
+import com.thomas.espdoorbell.doorbell.model.types.StreamStatus
+import com.thomas.espdoorbell.doorbell.model.types.UserDeviceRole
 import io.r2dbc.pool.ConnectionPool
 import io.r2dbc.pool.ConnectionPoolConfiguration
 import io.r2dbc.postgresql.PostgresqlConnectionConfiguration
@@ -12,21 +18,25 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.data.auditing.DateTimeProvider
+import org.springframework.data.domain.ReactiveAuditorAware
 import org.springframework.data.convert.WritingConverter
 import org.springframework.data.r2dbc.config.AbstractR2dbcConfiguration
 import org.springframework.data.r2dbc.config.EnableR2dbcAuditing
 import org.springframework.data.r2dbc.convert.EnumWriteSupport
 import org.springframework.data.r2dbc.repository.config.EnableR2dbcRepositories
+import org.springframework.security.core.context.ReactiveSecurityContextHolder
+import reactor.core.publisher.Mono
 import java.time.OffsetDateTime
 import java.time.ZoneId
 import java.time.temporal.TemporalAccessor
-import java.util.*
+import java.util.Optional
+import java.util.UUID
 
 @Configuration
 @EnableR2dbcRepositories
 @EnableConfigurationProperties(R2dbcProperties::class)
 @EnableR2dbcAuditing(
-//    auditorAwareRef = "reactiveAuditorAware",
+    auditorAwareRef = "reactiveAuditorAware",
     dateTimeProviderRef = "auditingDateTimeProvider",
     modifyOnCreate = true
 )
@@ -37,11 +47,15 @@ class R2DBCConfig(
         val VIETNAM_ZONE: ZoneId = ZoneId.of("Asia/Ho_Chi_Minh")
     }
 
-//    @Bean
-//    fun reactiveAuditorAware(): ReactiveAuditorAware<UUID> = ReactiveAuditorAware {
-//        TODO: Extract the authenticated principal (e.g. from ReactiveSecurityContextHolder)
-//        Mono.empty()
-//    }
+    @Bean
+    fun reactiveAuditorAware(): ReactiveAuditorAware<UUID> = ReactiveAuditorAware {
+        ReactiveSecurityContextHolder.getContext()
+            .mapNotNull { it.authentication?.principal }
+            .filter { it is UserPrincipal }
+            .cast(UserPrincipal::class.java)
+            .map { user -> user.id }
+            .switchIfEmpty(Mono.empty())
+    }
 
     @Bean
     override fun connectionFactory(): ConnectionFactory {
@@ -60,15 +74,14 @@ class R2DBCConfig(
                     .withEnum("stream_status_enum", StreamStatus::class.java)
                     .withEnum("event_type_enum", EventType::class.java)
                     .withEnum("response_type_enum", ResponseType::class.java)
-                    .withEnum("auth_provider_enum", AuthProvider::class.java)
                     .withEnum("granted_status_enum", DeviceAccess::class.java)
                     .withEnum("notification_type_enum", NotificationMethod::class.java)
-                    .withEnum("user_role_enum", UserRole::class.java)
+                    .withEnum("user_role_enum", UserDeviceRole::class.java)
                     .build()
             )
             .build()
 
-        val pgFactory =  PostgresqlConnectionFactory(pgConfig)
+        val pgFactory = PostgresqlConnectionFactory(pgConfig)
 
         val poolConfig = ConnectionPoolConfiguration.builder(pgFactory)
             .initialSize(r2dbcProperties.pool.initialSize)
@@ -90,7 +103,6 @@ class R2DBCConfig(
         StreamStatusWriteConverter,
         EventTypeWriteConverter,
         ResponseTypeWriteConverter,
-        AuthProviderWriteConverter,
         DeviceAccessWriteConverter,
         NotificationMethodWriteConverter,
         UserRoleWriteConverter
@@ -107,14 +119,11 @@ class R2DBCConfig(
     object ResponseTypeWriteConverter : EnumWriteSupport<ResponseType>()
 
     @WritingConverter
-    object AuthProviderWriteConverter: EnumWriteSupport<AuthProvider>()
-
-    @WritingConverter
     object DeviceAccessWriteConverter: EnumWriteSupport<DeviceAccess>()
 
     @WritingConverter
     object NotificationMethodWriteConverter: EnumWriteSupport<NotificationMethod>()
 
     @WritingConverter
-    object UserRoleWriteConverter: EnumWriteSupport<UserRole>()
+    object UserRoleWriteConverter: EnumWriteSupport<UserDeviceRole>()
 }

@@ -8,8 +8,11 @@ import kotlinx.coroutines.reactor.mono
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.socket.WebSocketHandler
+import org.springframework.web.reactive.socket.WebSocketMessage
 import org.springframework.web.reactive.socket.WebSocketSession
 import reactor.core.publisher.Mono
+import reactor.core.scheduler.Schedulers
+import java.nio.ByteBuffer
 import java.util.*
 
 /**
@@ -25,7 +28,7 @@ class InboundStreamHandler(
     private val logger = LoggerFactory.getLogger(InboundStreamHandler::class.java)
 
     override fun handle(session: WebSocketSession): Mono<Void> {
-        // Extract deviceId from path
+        // Extract deviceId from path config
         val deviceIdStr = session.handshakeInfo.uri.path.split("/").lastOrNull()
         if (deviceIdStr == null) {
             logger.error("Invalid WebSocket path: ${session.handshakeInfo.uri.path}")
@@ -35,14 +38,14 @@ class InboundStreamHandler(
         val deviceId: UUID
         try {
             deviceId = UUID.fromString(deviceIdStr)
-        } catch (e: IllegalArgumentException) {
+        } catch (_: IllegalArgumentException) {
             logger.error("Invalid device ID format: $deviceIdStr")
             return session.close()
         }
 
         logger.info("Inbound connection established for device $deviceId, session ${session.id}")
 
-        // Validate device exists and register inbound connection
+        // Validate device exists and registers inbound connection
         return mono {
             try {
                 // Validate device exists
@@ -60,9 +63,14 @@ class InboundStreamHandler(
             // Handle incoming binary messages
             session.receive()
                 .doOnNext { message ->
-                    if (message.type == org.springframework.web.reactive.socket.WebSocketMessage.Type.BINARY) {
+                    if (message.type == WebSocketMessage.Type.BINARY) {
                         try {
-                            val buffer = message.payload.asByteBuffer()
+                            val buffer = ByteBuffer.allocateDirect(
+                                message.payload.readableByteCount()
+                            ).apply {
+                                message.payload.toByteBuffer(this)
+                                flip()
+                            }
                             val packet = buffer.parseStreamPacket()
 
                             if (packet == null) {
@@ -76,8 +84,12 @@ class InboundStreamHandler(
 
                             // Log received packet
                             logger.debug(
-                                "Received ${packet.type.name} packet from device $deviceId: " +
-                                        "seq=${packet.sequenceNumber}, pts=${packet.ptsMillis}ms, size=${packet.payload.size} bytes"
+                                "Received {} packet from device {}: seq={}, pts={}ms, size={} bytes",
+                                packet.type.name,
+                                deviceId,
+                                packet.sequenceNumber,
+                                packet.ptsMillis,
+                                packet.payload.size
                             )
 
                             // Route to appropriate handler
@@ -109,6 +121,7 @@ class InboundStreamHandler(
                 .doOnError { error ->
                     logger.error("Error in inbound stream for device $deviceId", error)
                 }
+                .publishOn(Schedulers.boundedElastic())
                 .doFinally { _ ->
                     logger.info("Inbound connection closed for device $deviceId, session ${session.id}")
                     // Unregister inbound connection

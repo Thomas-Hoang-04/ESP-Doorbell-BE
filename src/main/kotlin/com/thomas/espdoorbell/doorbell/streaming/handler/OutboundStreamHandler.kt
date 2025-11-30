@@ -3,9 +3,9 @@ package com.thomas.espdoorbell.doorbell.streaming.handler
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.thomas.espdoorbell.doorbell.streaming.model.SegmentData
 import com.thomas.espdoorbell.doorbell.streaming.service.DeviceStreamManager
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.reactive.asPublisher
-import kotlinx.coroutines.reactor.mono
 import org.slf4j.LoggerFactory
 import org.springframework.core.io.buffer.DataBufferFactory
 import org.springframework.stereotype.Component
@@ -28,7 +28,7 @@ class OutboundStreamHandler(
     private val logger = LoggerFactory.getLogger(OutboundStreamHandler::class.java)
 
     override fun handle(session: WebSocketSession): Mono<Void> {
-        // Extract deviceId from path
+        // Extract deviceId from path config
         val deviceIdStr = session.handshakeInfo.uri.path.split("/").lastOrNull()
         if (deviceIdStr == null) {
             logger.error("Invalid WebSocket path: ${session.handshakeInfo.uri.path}")
@@ -38,7 +38,7 @@ class OutboundStreamHandler(
         val deviceId: UUID
         try {
             deviceId = UUID.fromString(deviceIdStr)
-        } catch (e: IllegalArgumentException) {
+        } catch (_: IllegalArgumentException) {
             logger.error("Invalid device ID format: $deviceIdStr")
             return session.close()
         }
@@ -48,7 +48,7 @@ class OutboundStreamHandler(
         // TODO: Validate user access via UserDeviceAccessRepository
         // For now, allow all connections
 
-        // Check if pipeline exists
+        // Check if a pipeline exists
         if (!deviceStreamManager.hasPipeline(deviceId)) {
             logger.warn("No active pipeline for device $deviceId")
             return session.close()
@@ -59,7 +59,7 @@ class OutboundStreamHandler(
 
         val dataBufferFactory = session.bufferFactory()
 
-        // Create message flow using Kotlin Flow
+        // Create a message flow using Kotlin Flow
         val messageFlow = flow {
             // First, send buffered segments for catch-up
             emitAll(sendBufferedSegments(deviceId, dataBufferFactory))
@@ -80,7 +80,7 @@ class OutboundStreamHandler(
                 }
             }
 
-        // Send messages to client (convert Flow to Publisher for WebFlux)
+        // Send messages to the client (convert Flow to Publisher for WebFlux)
         return session.send(messageFlow.asPublisher())
             .onErrorResume { error ->
                 logger.error("Error in outbound handler for device $deviceId, session ${session.id}", error)
@@ -106,6 +106,7 @@ class OutboundStreamHandler(
         }
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     private fun subscribeToNewSegments(
         deviceId: UUID,
         dataBufferFactory: DataBufferFactory
@@ -116,11 +117,8 @@ class OutboundStreamHandler(
         logger.info("Subscribed to new segments for device $deviceId")
 
         return segmentFlow
-            .catch { error ->
-                logger.error("Error in segment flow for device $deviceId", error)
-            }
             .flatMapConcat { segment ->
-                logger.debug("Sending segment ${segment.index} to device $deviceId")
+                logger.debug("Sending segment {} to device {}", segment.index, deviceId)
                 createSegmentMessages(segment, dataBufferFactory)
             }
     }
@@ -138,7 +136,7 @@ class OutboundStreamHandler(
                 dataBufferFactory.wrap(metadataJson.toByteArray())
             )
 
-            // Create binary WebM message
+            // Create a binary WebM message
             val binaryMessage = WebSocketMessage(
                 WebSocketMessage.Type.BINARY,
                 dataBufferFactory.wrap(segment.data)

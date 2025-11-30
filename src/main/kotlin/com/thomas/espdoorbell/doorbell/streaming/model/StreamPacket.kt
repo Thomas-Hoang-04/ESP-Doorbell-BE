@@ -50,8 +50,9 @@ data class StreamPacket(
 
 /**
  * Extension function to parse StreamPacket from ByteBuffer
- * Returns null if packet is invalid
+ * Returns null if the packet is invalid
  */
+@Suppress("unused", "unusedVariable")
 fun ByteBuffer.parseStreamPacket(): StreamPacket? {
     // Ensure big-endian byte order
     order(ByteOrder.BIG_ENDIAN)
