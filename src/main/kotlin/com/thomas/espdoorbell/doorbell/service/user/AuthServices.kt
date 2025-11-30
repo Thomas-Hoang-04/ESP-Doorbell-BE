@@ -2,7 +2,6 @@ package com.thomas.espdoorbell.doorbell.service.user
 
 import com.thomas.espdoorbell.doorbell.model.entity.user.UserCredentials
 import com.thomas.espdoorbell.doorbell.repository.user.UserCredentialRepository
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import kotlinx.coroutines.reactor.mono
 import org.springframework.security.core.userdetails.ReactiveUserDetailsService

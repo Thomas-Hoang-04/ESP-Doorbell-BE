@@ -41,8 +41,9 @@ class StreamController(
             logger.info("Stream request from user $userUuid for device $deviceId")
 
             // Validate user has access to the device
-            val access = userDeviceAccessRepository.findByUserIdAndDeviceId(userUuid, deviceId)
-                .firstOrNull()
+            val access = null // TODO: Implement access control
+//            val access = userDeviceAccessRepository.findByUserIdAndDeviceId(userUuid, deviceId)
+//                .firstOrNull()
             
             if (access == null) {
                 logger.warn("User $userUuid does not have access to device $deviceId")
@@ -136,9 +137,10 @@ class StreamController(
             logger.info("Stream stop request from user $userUuid for device $deviceId")
 
             // Validate user has access
-            val access = userDeviceAccessRepository.findByUserIdAndDeviceId(userUuid, deviceId)
-                .firstOrNull()
-            
+            val access = null // TODO: Implement access control
+//            val access = userDeviceAccessRepository.findByUserIdAndDeviceId(userUuid, deviceId)
+//                .firstOrNull()
+//
             if (access == null) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(StreamResponse(

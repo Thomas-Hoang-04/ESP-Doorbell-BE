@@ -1,7 +1,5 @@
 package com.thomas.espdoorbell.doorbell.streaming.model
 
-import com.fasterxml.jackson.annotation.JsonProperty
-
 /**
  * Metadata for WebM segments sent to Android clients
  * Sent as JSON text message before the binary WebM data

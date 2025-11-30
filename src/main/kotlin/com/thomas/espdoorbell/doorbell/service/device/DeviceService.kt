@@ -1,12 +1,10 @@
 package com.thomas.espdoorbell.doorbell.service.device
 
 import com.thomas.espdoorbell.doorbell.model.dto.device.DeviceDto
-import com.thomas.espdoorbell.doorbell.model.dto.event.EventDto
 import com.thomas.espdoorbell.doorbell.model.dto.user.UserDeviceAccessDto
 import com.thomas.espdoorbell.doorbell.model.entity.device.Devices
 import com.thomas.espdoorbell.doorbell.model.request.DeviceRegister
 import com.thomas.espdoorbell.doorbell.repository.device.DeviceRepository
-import com.thomas.espdoorbell.doorbell.repository.event.EventRepository
 import com.thomas.espdoorbell.doorbell.repository.user.UserDeviceAccessRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map

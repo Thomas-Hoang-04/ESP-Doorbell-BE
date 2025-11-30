@@ -1,7 +1,6 @@
 package com.thomas.espdoorbell.doorbell.mqtt.model
 
 import com.fasterxml.jackson.annotation.JsonProperty
-import java.util.UUID
 
 /**
  * Base sealed class for all MQTT message types
