@@ -7,10 +7,8 @@ import java.util.UUID
 @JsonInclude(JsonInclude.Include.NON_NULL)
 data class UserCredentialDto(
     val id: UUID,
-    val authProviderCode: String,
-    val authProviderLabel: String,
+    val email: String,
     val username: String?,
-    val oauthProviderId: String?,
     val isActive: Boolean,
     val isEmailVerified: Boolean,
     val lastLoginAt: OffsetDateTime?,

@@ -10,10 +10,7 @@ import java.util.UUID
 
 @Repository
 interface UserProfileRepository : CoroutineCrudRepository<UserProfiles, UUID> {
-    @Query("SELECT * FROM user_profiles WHERE email = :email")
-    suspend fun findByEmail(@Param("email") email: String): Flow<UserProfiles>
-
-    @Query("SELECT * FROM user_profiles WHERE display_name = :name")
+    @Query("SELECT * FROM user_profiles WHERE full_name = :name")
     suspend fun findByName(@Param("name") name: String): Flow<UserProfiles>
 
     @Query("SELECT * FROM user_profiles WHERE phone_number = :phoneNumber")

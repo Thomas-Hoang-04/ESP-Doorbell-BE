@@ -11,6 +11,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
@@ -57,12 +58,7 @@ class UserService(
         }
     }
 
-    private suspend fun extractDto(users: List<UserCredentials>, includeAccessAssignments: Boolean): UserCredentialDto {
-        if (users.size > 1)
-            throw IllegalAccessException("Multiple users found")
-
-        val user = users.first()
-
+    private suspend fun extractDto(user: UserCredentials, includeAccessAssignments: Boolean): UserCredentialDto {
         val userProfile = userProfileRepository.findById(user.id)
             ?: throw IllegalArgumentException("User profile for user id ${user.id} was not found")
 
@@ -90,18 +86,8 @@ class UserService(
 
     @Transactional(readOnly = true)
     suspend fun findByUsername(username: String, includeAccessAssignments: Boolean = true): UserCredentialDto {
-        val users = credentialRepository.findByUsername(username).toList()
-
-        if (users.isEmpty()) throw IllegalArgumentException("User with username $username not found")
-
-        return extractDto(users, includeAccessAssignments)
-    }
-
-    @Transactional(readOnly = true)
-    suspend fun findByOauthProviderId(oauthProviderId: String, includeAccessAssignments: Boolean = false): UserCredentialDto {
-        val users = credentialRepository.findByOauthProviderId(oauthProviderId).toList()
-
-        if (users.isEmpty()) throw IllegalArgumentException("User with username ${oauthProviderId}not found")
+        val users = credentialRepository.findByUsername(username).awaitSingleOrNull()
+            ?: throw IllegalArgumentException("User with username $username not found")
 
         return extractDto(users, includeAccessAssignments)
     }

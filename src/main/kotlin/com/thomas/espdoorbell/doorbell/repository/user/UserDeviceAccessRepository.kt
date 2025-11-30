@@ -1,13 +1,12 @@
 package com.thomas.espdoorbell.doorbell.repository.user
 
 import com.thomas.espdoorbell.doorbell.model.entity.user.UserDeviceAccess
-import com.thomas.espdoorbell.doorbell.model.types.UserRole
 import kotlinx.coroutines.flow.Flow
 import org.springframework.data.r2dbc.repository.Query
 import org.springframework.data.repository.kotlin.CoroutineCrudRepository
 import org.springframework.data.repository.query.Param
 import org.springframework.stereotype.Repository
-import java.util.UUID
+import java.util.*
 
 @Repository
 interface UserDeviceAccessRepository : CoroutineCrudRepository<UserDeviceAccess, UUID> {

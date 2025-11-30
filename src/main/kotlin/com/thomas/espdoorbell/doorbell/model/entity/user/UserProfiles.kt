@@ -5,7 +5,9 @@ import com.thomas.espdoorbell.doorbell.model.entity.base.BaseEntity
 import org.springframework.data.annotation.Transient
 import org.springframework.data.relational.core.mapping.Column
 import org.springframework.data.relational.core.mapping.Table
+import java.time.LocalDate
 import java.time.OffsetTime
+import java.time.ZoneId
 import java.util.UUID
 
 @Table("user_profiles")
@@ -13,17 +15,20 @@ class UserProfiles(
     @Transient
     private val user: UUID,
 
-    @Column("display_name")
-    private val _displayName: String,
+    @Column("full_name")
+    private val storedFullName: String,
 
     @Column("phone_number")
-    private val phoneNum: String? = null,
+    private val phoneNumber: String,
 
-    @Column("email")
-    private val email: String? = null,
+    @Column("dob")
+    private val dateOfBirth: LocalDate? = null,
+
+    @Column("timezone")
+    private val timezone: String = "Asia/Ho_Chi_Minh",
 
     @Column("notification_enabled")
-    private val notificationsEnabled: Boolean = true,
+    private val notificationEnabled: Boolean = true,
 
     @Column("quiet_hours_start")
     private val quietHoursStart: OffsetTime? = null,
@@ -35,34 +40,28 @@ class UserProfiles(
     init { validate() }
 
     override fun validate() {
-        require(!phoneNum.isNullOrBlank() || !email.isNullOrBlank()) {
-            "At least one contact method (phone number or email) must be provided"
+        val localPattern = Regex("^0[1-9][0-9]+$")
+        val e164Pattern = Regex("^\\+[1-9]\\d{1,14}$")
+        require(phoneNumber.matches(localPattern) || phoneNumber.matches(e164Pattern)) {
+            "Phone number must be in valid E.164 format or normalized local format"
         }
-
-        phoneNum?.let {
-            val localPattern = Regex("^0[1-9][0-9]{8}$")
-            val e164Pattern = Regex("^\\+[1-9]\\d{1,14}$")
-            require(it.matches(localPattern) || it.matches(e164Pattern)) {
-                "Phone number must be in valid E.164 format or local format"
-            }
-        }
-
-        email?.let {
-            require(it.matches(Regex("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,6}$"))) {
-                "Email must be in a valid format"
-            }
-        }
+        runCatching { ZoneId.of(timezone) }
+            .getOrElse { throw IllegalArgumentException("Timezone must be a valid IANA identifier") }
     }
 
-    val displayName: String
-        get() = _displayName
+    val fullName: String
+        get() = storedFullName
+
+    val normalizedPhoneNumber: String
+        get() = phoneNumber
 
     fun toDto(): UserProfileDto = UserProfileDto(
         id = id,
-        displayName = _displayName,
-        emailAddress = email,
-        phoneNumber = phoneNum,
-        notificationsEnabled = notificationsEnabled,
+        fullName = storedFullName,
+        phoneNumber = phoneNumber,
+        dateOfBirth = dateOfBirth,
+        timezone = timezone,
+        notificationEnabled = notificationEnabled,
         quietHoursStart = quietHoursStart,
         quietHoursEnd = quietHoursEnd,
     )
