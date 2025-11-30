@@ -47,3 +47,4 @@ secrets.*
 streams/
 
 ws*.txt
+mqtt*.txt

@@ -7,16 +7,9 @@ import com.fasterxml.jackson.annotation.JsonProperty
  * Sent as JSON text message before the binary WebM data
  */
 data class SegmentMetadata(
-    @JsonProperty("type")
     val type: String = "segment",
-    
-    @JsonProperty("index")
     val index: Int,
-    
-    @JsonProperty("timestamp")
     val timestamp: Long,
-    
-    @JsonProperty("size")
     val size: Int
 )
 

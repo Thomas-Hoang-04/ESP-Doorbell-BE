@@ -1,12 +1,10 @@
 package com.thomas.espdoorbell.doorbell.model.entity.events
 
 import com.thomas.espdoorbell.doorbell.model.dto.event.EventDto
-import com.thomas.espdoorbell.doorbell.model.entity.device.Devices
 import com.thomas.espdoorbell.doorbell.model.entity.base.BaseEntity
 import com.thomas.espdoorbell.doorbell.model.entity.user.UserProfiles
 import com.thomas.espdoorbell.doorbell.model.types.EventType
 import com.thomas.espdoorbell.doorbell.model.types.ResponseType
-import org.springframework.data.annotation.Transient
 import org.springframework.data.relational.core.mapping.Column
 import org.springframework.data.relational.core.mapping.Table
 import java.time.OffsetDateTime
@@ -61,7 +59,7 @@ class Events(
         responseTypeLabel = responseType.toDisplayName(),
         responseTimestamp = responseTimestamp,
         responderUserId = _respondedBy,
-        responderDisplayName = responder?.displayName,
+        responderDisplayName = responder?.fullName,
         stream = stream?.toDto(),
         media = media?.toDto(),
         notifications = notifications.map { it.toDto() }

@@ -31,7 +31,3 @@ streaming:
     buffer-count: 5
     cleanup-threshold: 10
   working-directory: ./streams
-
-mqtt:
-  broker: mqtt://localhost:1883
-  topic: streaming

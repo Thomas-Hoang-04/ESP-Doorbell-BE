@@ -19,23 +19,11 @@
 -- AUTHENTICATION ARCHITECTURE
 -- ============================================================================
 --
--- This schema supports HYBRID AUTHENTICATION:
---
--- 1. LOCAL AUTHENTICATION (username/password)
---    - Users create accounts with username and password
---    - Passwords stored as bcrypt/argon2 hashes in user_credentials.pwd
---    - Example: Internal employees, family members who prefer local accounts
---
--- 2. OAUTH AUTHENTICATION (Google, Auth0, GitHub, Apple)
---    - Users sign in with external OAuth providers
---    - External user ID stored in user_credentials.oauth_provider_id
---    - No password stored in database
---    - Example: "google-oauth2|123456789", "auth0|abc123def456"
---
--- TABLE STRUCTURE:
---   • user_credentials: Authentication data (passwords, OAuth IDs, login state)
---   • user_profiles: User information (display name, email, preferences)
---   • Separation ensures security (auth data isolated) and flexibility
+-- The schema now uses LOCAL AUTHENTICATION exclusively.
+--   • user_credentials stores login emails, optional usernames, and hashed passwords
+--   • user_profiles stores personal/contact data plus phone normalization
+-- The split mirrors the Bike Rental App approach but swaps phone usernames for email-first
+-- identifiers while still supporting classic usernames.
 --
 -- VIEWS:
 --   • users_complete: Join credentials + profiles for easy querying
@@ -49,12 +37,11 @@
 --   • doc/EVENTS.md - Event types and workflows
 --
 -- EXAMPLE QUERIES:
---   -- Find user by local username
---   SELECT * FROM users_complete WHERE username = 'admin' AND auth_provider = 'LOCAL';
+--   -- Find user by login email
+--   SELECT * FROM users_complete WHERE login_email = 'owner@example.com';
 --
---   -- Find user by OAuth ID
---   SELECT * FROM users_complete 
---   WHERE auth_provider = 'OAUTH_GOOGLE' AND oauth_provider_id = 'google-oauth2|123456';
+--   -- Or by username
+--   SELECT * FROM users_complete WHERE username = 'frontdoor_admin';
 --
 --   -- Get all active users
 --   SELECT * FROM users_complete WHERE is_active = true;
@@ -75,6 +62,10 @@ SELECT 'CREATE DATABASE doorbell'
 
 -- Connect to doorbell database
     \c doorbell
+
+-- Update database timezone
+ALTER DATABASE doorbell SET timezone TO 'Asia/Ho_Chi_Minh';
+SELECT pg_reload_conf();
 
 -- ============================================================================
 -- ENUM TYPES
@@ -100,7 +91,6 @@ CREATE TYPE event_type_enum AS ENUM (
 CREATE TYPE response_type_enum AS ENUM ('ANSWERED', 'MISSED', 'DECLINED', 'AUTO_RESPONSE', 'SYSTEM_RESPONSE', 'PENDING');
 CREATE TYPE notification_type_enum AS ENUM ('PUSH', 'EMAIL', 'SMS');
 CREATE TYPE stream_status_enum AS ENUM ('STREAMING', 'PROCESSING', 'COMPLETED', 'FAILED');
-CREATE TYPE auth_provider_enum AS ENUM ('LOCAL', 'OAUTH_GOOGLE', 'OAUTH_APPLE');
 CREATE TYPE user_role_enum AS ENUM ('OWNER', 'ADMIN', 'MEMBER', 'GUEST');
 CREATE TYPE granted_status_enum AS ENUM ('GRANTED', 'REVOKED', 'EXPIRED');
 
@@ -109,21 +99,16 @@ CREATE TYPE granted_status_enum AS ENUM ('GRANTED', 'REVOKED', 'EXPIRED');
 -- ============================================================================
 
 -- ============================================================================
--- USER AUTHENTICATION - Supports both OAuth and local auth
+-- USER AUTHENTICATION - Local auth with Bike schema inspiration
 -- ============================================================================
 
 CREATE TABLE user_credentials (
                                   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
-    -- Authentication method
-                                  auth_provider auth_provider_enum NOT NULL DEFAULT 'LOCAL',
-
-    -- Local authentication (username/password)
-                                  username VARCHAR(100) UNIQUE,
-                                  pwd VARCHAR(255) UNIQUE,
-
-    -- OAuth authentication (external provider)
-                                  oauth_provider_id VARCHAR(255),
+    -- Authentication (local email and optional username)
+                                  username VARCHAR(50) UNIQUE,
+                                  email VARCHAR(255) NOT NULL UNIQUE,
+                                  password VARCHAR(255) NOT NULL,
 
     -- Account status
                                   is_active BOOLEAN DEFAULT TRUE,
@@ -134,21 +119,19 @@ CREATE TABLE user_credentials (
                                   updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
 
     -- Constraints
-                                  CONSTRAINT check_local_auth
+                                  CONSTRAINT username_format_chk
                                       CHECK (
-                                          (auth_provider = 'LOCAL' AND username IS NOT NULL AND pwd IS NOT NULL AND oauth_provider_id IS NULL)
-                                              OR
-                                          (auth_provider != 'LOCAL' AND oauth_provider_id IS NOT NULL AND pwd IS NULL)
-                                          )
+                                          username IS NULL
+                                              OR username ~ '^[A-Za-z0-9._-]{3,50}$'
+),
+                                 CONSTRAINT email_format_chk
+                                     CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$')
 );
 
-CREATE UNIQUE INDEX idx_oauth_provider_id ON user_credentials(auth_provider, oauth_provider_id)
-    WHERE oauth_provider_id IS NOT NULL;
-
-COMMENT ON TABLE user_credentials IS 'User authentication - supports local password and OAuth providers';
-COMMENT ON COLUMN user_credentials.username IS 'For local auth: unique login username. For OAuth: can be null or display name';
-COMMENT ON COLUMN user_credentials.pwd IS 'Hashed password for local auth only (use bcrypt/argon2)';
-COMMENT ON COLUMN user_credentials.oauth_provider_id IS 'External provider user ID (e.g., "google-oauth2|123456", "auth0|abc123")';
+COMMENT ON TABLE user_credentials IS 'User authentication - local only with email logins + optional usernames';
+COMMENT ON COLUMN user_credentials.username IS 'Optional unique handle (alphanumeric plus dot, underscore, dash)';
+COMMENT ON COLUMN user_credentials.email IS 'Primary login email (case-insensitive compare recommended)';
+COMMENT ON COLUMN user_credentials.password IS 'Hashed password for local auth (use bcrypt/argon2)';
 
 -- ============================================================================
 -- USER PROFILES - User details and preferences
@@ -158,9 +141,10 @@ CREATE TABLE user_profiles (
                                id UUID PRIMARY KEY REFERENCES user_credentials(id) ON DELETE CASCADE,
 
     -- Personal information
-                               display_name VARCHAR(255) NOT NULL,
-                               email VARCHAR(255),
-                               phone_number VARCHAR(16),
+                               full_name VARCHAR(255) NOT NULL,
+                               phone_number VARCHAR(15) NOT NULL UNIQUE,
+                               dob DATE,
+                               timezone VARCHAR(64) DEFAULT 'Asia/Ho_Chi_Minh',
 
     -- Notification settings
                                notification_enabled BOOLEAN DEFAULT TRUE,
@@ -170,15 +154,31 @@ CREATE TABLE user_profiles (
                                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
                                updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
 
-                               CONSTRAINT check_contact_method
-                                   CHECK (email IS NOT NULL OR phone_number IS NOT NULL)
-);
+    -- Constraints
+                               CONSTRAINT phone_num_format_chk
+                                   CHECK (
+                                       phone_number ~ '^0[1-9][0-9]+$'
+                                       OR phone_number ~ '^\+84[1-9][0-9]+$'
+)
+    );
 
-CREATE INDEX idx_user_profiles_email ON user_profiles(email) WHERE email IS NOT NULL;
-CREATE INDEX idx_user_profiles_phone ON user_profiles(phone_number) WHERE phone_number IS NOT NULL;
+COMMENT ON TABLE user_profiles IS 'User profile information, normalized phone numbers, and notification preferences';
+COMMENT ON COLUMN user_profiles.full_name IS 'Name shown in UI and notifications';
 
-COMMENT ON TABLE user_profiles IS 'User profile information and notification preferences';
-COMMENT ON COLUMN user_profiles.display_name IS 'Name shown in UI and notifications';
+-- Normalize local phone inputs to +84 for consistency (Bike Rental schema inspiration)
+CREATE OR REPLACE FUNCTION normalize_user_profile_phone()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.phone_number LIKE '0%' THEN
+        NEW.phone_number := '+84' || substring(NEW.phone_number FROM 2);
+END IF;
+RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER user_profiles_phone_normalization
+    BEFORE INSERT OR UPDATE ON user_profiles
+                         FOR EACH ROW EXECUTE FUNCTION normalize_user_profile_phone();
 
 -- Doorbell devices
 CREATE TABLE devices (
@@ -203,14 +203,13 @@ COMMENT ON TABLE devices IS 'Physical doorbell devices';
 
 -- User device access control (RBAC)
 CREATE TABLE user_device_access (
+                                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                                     user_id UUID NOT NULL REFERENCES user_credentials(id) ON DELETE CASCADE,
                                     device_id UUID NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
                                     role user_role_enum NOT NULL DEFAULT 'MEMBER',
                                     granted_status granted_status_enum NOT NULL DEFAULT 'GRANTED',
                                     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-                                    updated_by UUID REFERENCES user_credentials(id) ON DELETE SET NULL,
-
-                                    PRIMARY KEY (user_id, device_id)
+                                    updated_by UUID REFERENCES user_credentials(id) ON DELETE SET NULL
 );
 
 COMMENT ON TABLE user_device_access IS 'Role-based access control for device permissions';
@@ -268,7 +267,7 @@ COMMENT ON TABLE events IS 'Core doorbell events - base information only';
 -- ============================================================================
 
 CREATE TABLE event_streams (
-                               event_id UUID PRIMARY KEY REFERENCES events(id) ON DELETE CASCADE,
+                               id UUID PRIMARY KEY REFERENCES events(id) ON DELETE CASCADE,
 
     -- Streaming metadata
                                stream_status stream_status_enum DEFAULT 'STREAMING',
@@ -300,7 +299,7 @@ COMMENT ON COLUMN event_streams.raw_video_path IS 'Temporary storage path, delet
 -- ============================================================================
 
 CREATE TABLE event_media (
-                             event_id UUID PRIMARY KEY REFERENCES events(id) ON DELETE CASCADE,
+                             id UUID PRIMARY KEY REFERENCES events(id) ON DELETE CASCADE,
 
     -- Final processed media URLs
                              video_url VARCHAR(500),
@@ -342,6 +341,7 @@ COMMENT ON COLUMN notifications.recipient_user_id IS 'Optional FK to the user wh
 -- ============================================================================
 
 -- User Credentials (Authentication)
+CREATE INDEX idx_user_credentials_email ON user_credentials(email);
 CREATE INDEX idx_user_credentials_username ON user_credentials(username) WHERE username IS NOT NULL;
 CREATE INDEX idx_user_credentials_last_login ON user_credentials(last_login DESC) WHERE last_login IS NOT NULL;
 CREATE INDEX idx_user_credentials_active ON user_credentials(is_active) WHERE is_active = TRUE;
@@ -428,10 +428,10 @@ SELECT
     em.file_size_bytes,
     d.name as device_name,
     d.location as device_location,
-    up.display_name as responded_by_username
+    up.full_name as responded_by_name
 FROM events e
-         LEFT JOIN event_streams es ON e.id = es.event_id
-         LEFT JOIN event_media em ON e.id = em.event_id
+         LEFT JOIN event_streams es ON e.id = es.id
+         LEFT JOIN event_media em ON e.id = em.id
          LEFT JOIN devices d ON e.device_id = d.id
          LEFT JOIN user_credentials uc ON e.responded_by = uc.id
          LEFT JOIN user_profiles up ON uc.id = up.id;
@@ -450,7 +450,7 @@ SELECT
     es.hls_playlist_url,
     EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - es.stream_started_at)) as stream_duration_seconds
 FROM events e
-         JOIN event_streams es ON e.id = es.event_id
+         JOIN event_streams es ON e.id = es.id
          JOIN devices d ON e.device_id = d.id
 WHERE es.stream_status IN ('STREAMING', 'PROCESSING')
 ORDER BY es.stream_started_at DESC;
@@ -461,16 +461,16 @@ COMMENT ON VIEW active_streams IS 'Currently active streams';
 CREATE OR REPLACE VIEW users_complete AS
 SELECT
     uc.id,
-    uc.auth_provider,
+    uc.email as login_email,
     uc.username,
-    uc.oauth_provider_id,
     uc.is_active,
     uc.is_email_verified,
     uc.last_login,
     uc.created_at as credential_created_at,
-    up.display_name,
-    up.email,
+    up.full_name,
     up.phone_number,
+    up.dob,
+    up.timezone as preferred_timezone,
     up.notification_enabled,
     up.quiet_hours_start,
     up.quiet_hours_end,
