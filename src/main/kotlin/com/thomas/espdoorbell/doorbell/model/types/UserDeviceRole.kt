@@ -1,6 +1,6 @@
 package com.thomas.espdoorbell.doorbell.model.types
 
-enum class UserRole {
+ enum class UserDeviceRole {
     OWNER,
     ADMIN,
     MEMBER,

@@ -2,7 +2,7 @@ package com.thomas.espdoorbell.doorbell.model.entity.user
 
 import com.thomas.espdoorbell.doorbell.model.dto.user.UserDeviceAccessDto
 import com.thomas.espdoorbell.doorbell.model.types.DeviceAccess
-import com.thomas.espdoorbell.doorbell.model.types.UserRole
+import com.thomas.espdoorbell.doorbell.model.types.UserDeviceRole
 import org.springframework.data.annotation.Id
 import org.springframework.data.annotation.LastModifiedBy
 import org.springframework.data.annotation.LastModifiedDate
@@ -24,7 +24,7 @@ class UserDeviceAccess(
     private val _device: UUID,
 
     @Column("role")
-    private val role: UserRole = UserRole.MEMBER,
+    private val role: UserDeviceRole = UserDeviceRole.MEMBER,
 
     @Column("updated_at")
     @LastModifiedDate
