@@ -1,8 +1,8 @@
-package com.thomas.espdoorbell.doorbell.model.entity.user
+package com.thomas.espdoorbell.doorbell.user.entity
 
-import com.thomas.espdoorbell.doorbell.model.dto.user.UserCredentialDto
-import com.thomas.espdoorbell.doorbell.model.entity.base.BaseEntity
-import com.thomas.espdoorbell.doorbell.model.principal.UserPrincipal
+import com.thomas.espdoorbell.doorbell.shared.entity.BaseEntity
+import com.thomas.espdoorbell.doorbell.shared.principal.UserPrincipal
+import com.thomas.espdoorbell.doorbell.user.dto.UserCredentialDto
 import org.springframework.data.relational.core.mapping.Column
 import org.springframework.data.relational.core.mapping.Table
 import org.springframework.security.core.authority.SimpleGrantedAuthority

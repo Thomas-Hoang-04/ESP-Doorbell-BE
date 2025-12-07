@@ -1,4 +1,4 @@
-package com.thomas.espdoorbell.doorbell.model.principal
+package com.thomas.espdoorbell.doorbell.shared.principal
 
 import org.springframework.security.authentication.AbstractAuthenticationToken
 

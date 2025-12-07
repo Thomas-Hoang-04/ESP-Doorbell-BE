@@ -1,6 +1,6 @@
-package com.thomas.espdoorbell.doorbell.repository.user
+package com.thomas.espdoorbell.doorbell.user.repository
 
-import com.thomas.espdoorbell.doorbell.model.entity.user.UserProfiles
+import com.thomas.espdoorbell.doorbell.user.entity.UserProfiles
 import kotlinx.coroutines.flow.Flow
 import org.springframework.data.r2dbc.repository.Query
 import org.springframework.data.repository.kotlin.CoroutineCrudRepository

@@ -1,20 +1,21 @@
-package com.thomas.espdoorbell.doorbell.model.entity.user
+package com.thomas.espdoorbell.doorbell.user.entity
 
-import com.thomas.espdoorbell.doorbell.model.dto.user.UserDeviceAccessDto
-import com.thomas.espdoorbell.doorbell.model.types.DeviceAccess
-import com.thomas.espdoorbell.doorbell.model.types.UserDeviceRole
+import com.thomas.espdoorbell.doorbell.shared.types.DeviceAccess
+import com.thomas.espdoorbell.doorbell.shared.types.UserDeviceRole
+import com.thomas.espdoorbell.doorbell.user.dto.UserDeviceAccessDto
 import org.springframework.data.annotation.Id
 import org.springframework.data.annotation.LastModifiedBy
 import org.springframework.data.annotation.LastModifiedDate
 import org.springframework.data.relational.core.mapping.Column
 import org.springframework.data.relational.core.mapping.Table
 import java.time.OffsetDateTime
-import java.util.UUID
+import java.util.*
 
 @Table(name = "user_device_access")
 class UserDeviceAccess(
     @Column("id")
     @Id
+    @Suppress("unused")
     private val id: UUID = UUID.randomUUID(),
 
     @Column( "user_id")

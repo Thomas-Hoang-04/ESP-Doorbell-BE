@@ -1,4 +1,4 @@
-package com.thomas.espdoorbell.doorbell.model.dto.user
+package com.thomas.espdoorbell.doorbell.user.dto
 
 import com.fasterxml.jackson.annotation.JsonInclude
 import java.time.OffsetDateTime
