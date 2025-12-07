@@ -1,8 +1,8 @@
-package com.thomas.espdoorbell.doorbell.model.request
+package com.thomas.espdoorbell.doorbell.event.request
 
 import com.fasterxml.jackson.annotation.JsonProperty
-import com.thomas.espdoorbell.doorbell.model.types.ResponseType
-import java.util.UUID
+import com.thomas.espdoorbell.doorbell.shared.types.ResponseType
+import java.util.*
 
 data class EventUserResponse(
     @field:JsonProperty("user_id")

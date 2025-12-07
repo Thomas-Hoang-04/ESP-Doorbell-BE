@@ -1,8 +1,8 @@
-package com.thomas.espdoorbell.doorbell.model.dto.event
+package com.thomas.espdoorbell.doorbell.event.dto
 
 import com.fasterxml.jackson.annotation.JsonInclude
 import java.time.OffsetDateTime
-import java.util.UUID
+import java.util.*
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 data class EventDto(
@@ -16,7 +16,12 @@ data class EventDto(
     val responseTimestamp: OffsetDateTime?,
     val responderUserId: UUID?,
     val responderDisplayName: String?,
-    val stream: EventStreamDto?,
-    val media: EventMediaDto?,
-    val notifications: List<NotificationDto>,
+    
+    // Stream info (merged)
+    val streamStatusCode: String?,
+    val streamStatusLabel: String?,
+    val streamStartedAt: OffsetDateTime?,
+    val streamEndedAt: OffsetDateTime?,
+    val durationSeconds: Int?
 )
+
