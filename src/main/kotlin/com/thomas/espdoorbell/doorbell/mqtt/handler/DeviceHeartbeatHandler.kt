@@ -1,7 +1,7 @@
 package com.thomas.espdoorbell.doorbell.mqtt.handler
 
-import com.thomas.espdoorbell.doorbell.mqtt.model.HeartbeatMessage
-import com.thomas.espdoorbell.doorbell.service.device.DeviceService
+import com.thomas.espdoorbell.doorbell.device.service.DeviceService
+import com.thomas.espdoorbell.doorbell.mqtt.model.DeviceHeartbeatMessage
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import java.util.UUID
@@ -18,29 +18,29 @@ class DeviceHeartbeatHandler(
 
     /**
      * Process a heartbeat message from an ESP32 device
+     * Handles unified heartbeat (includes status, battery, signal, uptime)
      */
-    suspend fun handleHeartbeat(message: HeartbeatMessage) {
+    suspend fun handleHeartbeat(message: DeviceHeartbeatMessage) {
         try {
             val deviceId = UUID.fromString(message.deviceId)
 
             logger.debug(
-                "Processing heartbeat from device {}: battery={}%, signal={}dBm",
+                "Processing heartbeat from device {}: battery={}%, signal={}dBm, active={}",
                 deviceId,
                 message.batteryLevel,
-                message.signalStrength
+                message.signalStrength,
+                message.isActive
             )
 
-            // Update device online status
-            deviceService.updateDeviceOnlineStatus(deviceId, isOnline = true)
-
-            // Update device metrics
-            deviceService.updateDeviceMetrics(
+            // Update device with all heartbeat data using reflection-based update
+            deviceService.updateDeviceFromHeartbeat(
                 deviceId = deviceId,
+                isActive = message.isActive,
                 batteryLevel = message.batteryLevel,
                 signalStrength = message.signalStrength
             )
 
-            // Optionally update the firmware if provided
+            // Log firmware version if provided
             message.firmwareVersion?.let { version ->
                 // Could add a method to update firmware if needed
                 logger.debug("Device {} firmware version: {}", deviceId, version)
@@ -54,4 +54,5 @@ class DeviceHeartbeatHandler(
         }
     }
 }
+
 
