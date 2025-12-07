@@ -1,4 +1,4 @@
-package com.thomas.espdoorbell.doorbell.model.request
+package com.thomas.espdoorbell.doorbell.event.request
 
 import com.fasterxml.jackson.annotation.JsonProperty
 

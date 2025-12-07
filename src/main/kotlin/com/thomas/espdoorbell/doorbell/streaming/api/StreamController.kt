@@ -1,9 +1,10 @@
-package com.thomas.espdoorbell.doorbell.controller
+package com.thomas.espdoorbell.doorbell.streaming.api
 
+import com.thomas.espdoorbell.doorbell.device.service.DeviceService
 import com.thomas.espdoorbell.doorbell.mqtt.service.MqttPublisherService
-import com.thomas.espdoorbell.doorbell.repository.user.UserDeviceAccessRepository
-import com.thomas.espdoorbell.doorbell.service.device.DeviceService
-import kotlinx.coroutines.flow.firstOrNull
+import com.thomas.espdoorbell.doorbell.streaming.api.dto.StreamRequest
+import com.thomas.espdoorbell.doorbell.streaming.api.dto.StreamResponse
+import com.thomas.espdoorbell.doorbell.user.repository.UserDeviceAccessRepository
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -169,22 +170,13 @@ class StreamController(
         } catch (e: Exception) {
             logger.error("Error processing stream stop request", e)
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(StreamResponse(
-                    success = false,
-                    message = "Internal server error"
-                ))
+                .body(
+                    StreamResponse(
+                        success = false,
+                        message = "Internal server error"
+                    )
+                )
         }
     }
-
-    data class StreamRequest(
-        val deviceId: String
-    )
-
-    data class StreamResponse(
-        val success: Boolean,
-        val message: String,
-        val websocketUrl: String? = null,
-        val deviceId: String? = null
-    )
 }
 

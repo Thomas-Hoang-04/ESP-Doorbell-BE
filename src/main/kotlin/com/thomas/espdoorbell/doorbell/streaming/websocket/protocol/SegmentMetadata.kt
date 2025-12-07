@@ -1,4 +1,4 @@
-package com.thomas.espdoorbell.doorbell.streaming.model
+package com.thomas.espdoorbell.doorbell.streaming.websocket.protocol
 
 /**
  * Metadata for WebM segments sent to Android clients
