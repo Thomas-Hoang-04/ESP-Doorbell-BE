@@ -1,6 +1,6 @@
-package com.thomas.espdoorbell.doorbell.config.jwt
+package com.thomas.espdoorbell.doorbell.core.jwt
 
-import com.thomas.espdoorbell.doorbell.model.principal.UserPrincipalAuthToken
+import com.thomas.espdoorbell.doorbell.shared.principal.UserPrincipalAuthToken
 import kotlinx.coroutines.reactor.ReactorContext
 import kotlinx.coroutines.withContext
 import org.springframework.http.HttpHeaders

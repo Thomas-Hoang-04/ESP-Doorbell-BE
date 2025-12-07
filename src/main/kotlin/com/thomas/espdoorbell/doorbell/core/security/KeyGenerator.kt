@@ -1,4 +1,4 @@
-package com.thomas.espdoorbell.doorbell.config.security
+package com.thomas.espdoorbell.doorbell.core.security
 
 import java.security.KeyPair
 import java.security.KeyPairGenerator

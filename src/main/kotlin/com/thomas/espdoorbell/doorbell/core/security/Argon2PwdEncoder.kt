@@ -1,4 +1,4 @@
-package com.thomas.espdoorbell.doorbell.config.security
+package com.thomas.espdoorbell.doorbell.core.security
 
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration

@@ -1,9 +1,9 @@
-package com.thomas.espdoorbell.doorbell.config.jwt
+package com.thomas.espdoorbell.doorbell.core.jwt
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.auth0.jwt.interfaces.DecodedJWT
-import com.thomas.espdoorbell.doorbell.config.security.RSAKeyProperties
+import com.thomas.espdoorbell.doorbell.core.security.RSAKeyProperties
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.springframework.stereotype.Component
