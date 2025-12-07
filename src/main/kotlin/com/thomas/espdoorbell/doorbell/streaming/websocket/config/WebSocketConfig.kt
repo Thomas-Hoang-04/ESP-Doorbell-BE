@@ -1,7 +1,7 @@
-package com.thomas.espdoorbell.doorbell.streaming.config
+package com.thomas.espdoorbell.doorbell.streaming.websocket.config
 
-import com.thomas.espdoorbell.doorbell.streaming.handler.InboundStreamHandler
-import com.thomas.espdoorbell.doorbell.streaming.handler.OutboundStreamHandler
+import com.thomas.espdoorbell.doorbell.streaming.websocket.handler.InboundStreamHandler
+import com.thomas.espdoorbell.doorbell.streaming.websocket.handler.OutboundStreamHandler
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.web.reactive.HandlerMapping

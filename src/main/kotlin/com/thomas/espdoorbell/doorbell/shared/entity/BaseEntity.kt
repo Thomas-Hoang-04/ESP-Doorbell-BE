@@ -1,4 +1,4 @@
-package com.thomas.espdoorbell.doorbell.model.entity.base
+package com.thomas.espdoorbell.doorbell.shared.entity
 
 import org.springframework.data.annotation.CreatedDate
 import org.springframework.data.annotation.Id

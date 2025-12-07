@@ -1,12 +1,11 @@
-package com.thomas.espdoorbell.doorbell.config.database
+package com.thomas.espdoorbell.doorbell.core.database
 
-import com.thomas.espdoorbell.doorbell.model.principal.UserPrincipal
-import com.thomas.espdoorbell.doorbell.model.types.DeviceAccess
-import com.thomas.espdoorbell.doorbell.model.types.EventType
-import com.thomas.espdoorbell.doorbell.model.types.NotificationMethod
-import com.thomas.espdoorbell.doorbell.model.types.ResponseType
-import com.thomas.espdoorbell.doorbell.model.types.StreamStatus
-import com.thomas.espdoorbell.doorbell.model.types.UserDeviceRole
+import com.thomas.espdoorbell.doorbell.shared.principal.UserPrincipal
+import com.thomas.espdoorbell.doorbell.shared.types.DeviceAccess
+import com.thomas.espdoorbell.doorbell.shared.types.EventType
+import com.thomas.espdoorbell.doorbell.shared.types.ResponseType
+import com.thomas.espdoorbell.doorbell.shared.types.StreamStatus
+import com.thomas.espdoorbell.doorbell.shared.types.UserDeviceRole
 import io.r2dbc.pool.ConnectionPool
 import io.r2dbc.pool.ConnectionPoolConfiguration
 import io.r2dbc.postgresql.PostgresqlConnectionConfiguration
@@ -75,7 +74,6 @@ class R2DBCConfig(
                     .withEnum("event_type_enum", EventType::class.java)
                     .withEnum("response_type_enum", ResponseType::class.java)
                     .withEnum("granted_status_enum", DeviceAccess::class.java)
-                    .withEnum("notification_type_enum", NotificationMethod::class.java)
                     .withEnum("user_role_enum", UserDeviceRole::class.java)
                     .build()
             )
@@ -104,7 +102,6 @@ class R2DBCConfig(
         EventTypeWriteConverter,
         ResponseTypeWriteConverter,
         DeviceAccessWriteConverter,
-        NotificationMethodWriteConverter,
         UserRoleWriteConverter
     )
 
@@ -121,8 +118,6 @@ class R2DBCConfig(
     @WritingConverter
     object DeviceAccessWriteConverter: EnumWriteSupport<DeviceAccess>()
 
-    @WritingConverter
-    object NotificationMethodWriteConverter: EnumWriteSupport<NotificationMethod>()
 
     @WritingConverter
     object UserRoleWriteConverter: EnumWriteSupport<UserDeviceRole>()
