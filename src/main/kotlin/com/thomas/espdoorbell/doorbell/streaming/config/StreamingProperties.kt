@@ -13,7 +13,6 @@ data class StreamingProperties(
 ) {
     data class FfmpegSettings(
         var path: String = "ffmpeg",
-        var segmentDuration: Int = 2,
         var videoBitrate: String = "1M",
         var audioBitrate: String = "128k"
     )
@@ -25,8 +24,6 @@ data class StreamingProperties(
     )
 
     data class SegmentSettings(
-        var bufferCount: Int = 5,
-        var cleanupThreshold: Int = 10
+        var bufferCount: Int = 5  // Ring buffer size for late-joiners
     )
 }
-

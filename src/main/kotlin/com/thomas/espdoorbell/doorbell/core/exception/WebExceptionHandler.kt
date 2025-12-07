@@ -1,4 +1,4 @@
-package com.thomas.espdoorbell.doorbell.config.exception
+package com.thomas.espdoorbell.doorbell.core.exception
 
 import com.auth0.jwt.exceptions.JWTVerificationException
 import org.springframework.boot.autoconfigure.web.WebProperties
@@ -47,6 +47,9 @@ class WebExceptionHandler(
             is JWTVerificationException -> HttpStatus.UNAUTHORIZED
             is BadCredentialsException -> HttpStatus.UNAUTHORIZED
             is AccessDeniedException -> HttpStatus.FORBIDDEN
+            is IllegalArgumentException -> HttpStatus.BAD_REQUEST
+            is NoSuchElementException -> HttpStatus.NOT_FOUND
+            is IllegalStateException -> HttpStatus.CONFLICT
             else -> HttpStatus.INTERNAL_SERVER_ERROR
         }
 
