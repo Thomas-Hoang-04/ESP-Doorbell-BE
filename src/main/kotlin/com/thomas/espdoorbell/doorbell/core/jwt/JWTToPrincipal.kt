@@ -1,11 +1,10 @@
-package com.thomas.espdoorbell.doorbell.config.jwt
+package com.thomas.espdoorbell.doorbell.core.jwt
 
 import com.auth0.jwt.interfaces.Claim
 import com.auth0.jwt.interfaces.DecodedJWT
-import com.thomas.espdoorbell.doorbell.model.entity.user.UserCredentials
-import com.thomas.espdoorbell.doorbell.model.principal.UserPrincipal
-import com.thomas.espdoorbell.doorbell.repository.user.UserCredentialRepository
-import kotlinx.coroutines.reactor.awaitSingleOrNull
+import com.thomas.espdoorbell.doorbell.shared.principal.UserPrincipal
+import com.thomas.espdoorbell.doorbell.user.entity.UserCredentials
+import com.thomas.espdoorbell.doorbell.user.repository.UserCredentialRepository
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.stereotype.Component
 import java.util.UUID
@@ -24,7 +23,7 @@ class JWTToPrincipal(
 
     suspend fun convert(jwt: DecodedJWT): Optional<UserPrincipal> {
         val username = jwt.getClaim("username").asString() ?: return Optional.empty()
-        val user: UserCredentials = userRepo.findByLogin(username).awaitSingleOrNull() ?: return Optional.empty()
+        val user: UserCredentials = userRepo.findByLogin(username) ?: return Optional.empty()
         assert(user.id == UUID.fromString(jwt.subject))
         return Optional.of(user.toPrincipal(extractAuthClaim(jwt)))
     }

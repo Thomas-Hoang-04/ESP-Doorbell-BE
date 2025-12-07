@@ -1,7 +1,7 @@
-package com.thomas.espdoorbell.doorbell.config.security
+package com.thomas.espdoorbell.doorbell.core.security
 
-import com.thomas.espdoorbell.doorbell.config.jwt.JWTAuthFilter
-import com.thomas.espdoorbell.doorbell.service.user.AuthServices
+import com.thomas.espdoorbell.doorbell.core.jwt.JWTAuthFilter
+import com.thomas.espdoorbell.doorbell.user.service.AuthServices
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.security.authentication.ReactiveAuthenticationManager
