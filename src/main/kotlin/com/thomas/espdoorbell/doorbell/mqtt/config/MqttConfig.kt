@@ -16,7 +16,7 @@ class MqttConfig(
 
     @Bean
     fun mqttClient(): MqttClient {
-        val brokerUrl = mqttProperties.brokerURl
+        val brokerUrl = mqttProperties.brokerUrl
         val clientId = mqttProperties.client.id
 
         logger.info("Initializing MQTT client with broker: $brokerUrl, clientId: $clientId")

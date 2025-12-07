@@ -1,5 +1,7 @@
 package com.thomas.espdoorbell.doorbell.mqtt.config
 
+import jakarta.annotation.PostConstruct
+import org.slf4j.LoggerFactory
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.context.annotation.Configuration
 
@@ -11,6 +13,8 @@ data class MqttProperties(
     var topics: TopicSettings = TopicSettings(),
     var qos: QosSettings = QosSettings()
 ) {
+    private val logger = LoggerFactory.getLogger(MqttProperties::class.java)
+
     data class BrokerSettings(
         var url: String = "tcp://localhost",
         var port: Int = 1883,
@@ -30,25 +34,32 @@ data class MqttProperties(
         var prefix: String = "doorbell",
         var streamStart: String = "doorbell/{deviceId}/stream/start",
         var streamStop: String = "doorbell/{deviceId}/stream/stop",
-        var heartbeat: String = "doorbell/+/heartbeat",
-        var status: String = "doorbell/+/status"
+        var heartbeat: String = "doorbell/+/heartbeat"
     )
 
     data class QosSettings(
         var default: Int = 1,
-        var heartbeat: Int = 0
+        var heartbeat: Int = 1
     )
 
-    /**
-     * Get the full broker URL with port
-     */
-    val brokerURl: String = "${broker.url}:${broker.port}"
+    /** Full broker URL with port */
+    val brokerUrl: String
+        get() = "${broker.url}:${broker.port}"
 
-    /**
-     * Format a topic with device ID
-     */
-    fun formatTopic(template: String, deviceId: String): String {
-        return template.replace("{deviceId}", deviceId)
+    /** Format a topic template with device ID */
+    fun formatTopic(template: String, deviceId: String): String =
+        template.replace("{deviceId}", deviceId)
+
+    @PostConstruct
+    fun validate() {
+        require(broker.url.isNotBlank()) { "MQTT broker URL must not be blank" }
+        require(broker.port in 1..65535) { "MQTT broker port must be between 1 and 65535" }
+        require(client.id.isNotBlank()) { "MQTT client ID must not be blank" }
+        require(qos.default in 0..2) { "MQTT QoS must be between 0 and 2" }
+        require(qos.heartbeat in 0..2) { "MQTT heartbeat QoS must be between 0 and 2" }
+        
+        logger.info("MQTT properties validated: broker=$brokerUrl, clientId=${client.id}")
     }
 }
+
 
