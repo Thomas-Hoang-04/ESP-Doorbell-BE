@@ -1,8 +1,8 @@
-package com.thomas.espdoorbell.doorbell.streaming.handler
+package com.thomas.espdoorbell.doorbell.streaming.websocket.handler
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.thomas.espdoorbell.doorbell.streaming.model.SegmentData
-import com.thomas.espdoorbell.doorbell.streaming.service.DeviceStreamManager
+import com.thomas.espdoorbell.doorbell.streaming.websocket.protocol.SegmentData
+import com.thomas.espdoorbell.doorbell.streaming.pipeline.DeviceStreamManager
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.reactive.asPublisher
@@ -19,6 +19,10 @@ import java.util.*
  * WebSocket handler for outbound Android client connections
  * Sends WebM segments with JSON metadata to clients
  */
+// TODO: Validate user authentication via JWT from handshake
+// TODO: Check user device access permissions before allowing connection
+// TODO: Add metrics for segments sent, client latency
+// TODO: Implement graceful degradation (skip segments if client is slow)
 @Component
 class OutboundStreamHandler(
     private val deviceStreamManager: DeviceStreamManager,
@@ -45,8 +49,10 @@ class OutboundStreamHandler(
 
         logger.info("Outbound connection established for device $deviceId, session ${session.id}")
 
-        // TODO: Validate user access via UserDeviceAccessRepository
-        // For now, allow all connections
+        // TODO: Implement proper user authentication and device access validation
+        // val userId = extractUserFromSecurityContext()
+        // val hasAccess = userDeviceAccessRepository.findByUserIdAndDeviceId(userId, deviceId) != null
+        // if (!hasAccess) return session.close()
 
         // Check if a pipeline exists
         if (!deviceStreamManager.hasPipeline(deviceId)) {
@@ -92,14 +98,28 @@ class OutboundStreamHandler(
         deviceId: UUID,
         dataBufferFactory: DataBufferFactory
     ): Flow<WebSocketMessage> = flow {
+        // First, send the init segment (WebM header) - required for decoder
+        val initSegment = deviceStreamManager.getInitSegment(deviceId)
+        if (initSegment != null) {
+            logger.info("Sending init segment ({} bytes) to new client for device {}", initSegment.size, deviceId)
+            val initMessage = WebSocketMessage(
+                WebSocketMessage.Type.BINARY,
+                dataBufferFactory.wrap(initSegment)
+            )
+            emit(initMessage)
+        } else {
+            logger.warn("No init segment available for device {}", deviceId)
+        }
+
+        // Then send buffered segments for catch-up
         val bufferedSegments = deviceStreamManager.getBufferedSegments(deviceId)
         
         if (bufferedSegments.isEmpty()) {
-            logger.info("No buffered segments for device $deviceId")
+            logger.info("No buffered segments for device {}", deviceId)
             return@flow
         }
 
-        logger.info("Sending ${bufferedSegments.size} buffered segments to device $deviceId")
+        logger.info("Sending {} buffered segments to device {}", bufferedSegments.size, deviceId)
 
         bufferedSegments.forEach { segment ->
             emitAll(createSegmentMessages(segment, dataBufferFactory))

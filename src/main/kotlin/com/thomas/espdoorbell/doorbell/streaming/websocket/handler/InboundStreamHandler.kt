@@ -1,9 +1,9 @@
-package com.thomas.espdoorbell.doorbell.streaming.handler
+package com.thomas.espdoorbell.doorbell.streaming.websocket.handler
 
-import com.thomas.espdoorbell.doorbell.service.device.DeviceService
-import com.thomas.espdoorbell.doorbell.streaming.model.StreamPacket
-import com.thomas.espdoorbell.doorbell.streaming.model.parseStreamPacket
-import com.thomas.espdoorbell.doorbell.streaming.service.DeviceStreamManager
+import com.thomas.espdoorbell.doorbell.device.service.DeviceService
+import com.thomas.espdoorbell.doorbell.streaming.websocket.protocol.StreamPacket
+import com.thomas.espdoorbell.doorbell.streaming.websocket.protocol.parseStreamPacket
+import com.thomas.espdoorbell.doorbell.streaming.pipeline.DeviceStreamManager
 import kotlinx.coroutines.reactor.mono
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
@@ -19,6 +19,10 @@ import java.util.*
  * WebSocket handler for inbound ESP32 device connections
  * Receives binary packets with video/audio data and feeds them to the transcoding pipeline
  */
+// TODO: Validate device authentication token from WebSocket headers
+// TODO: Rate limit connections per device (prevent DoS)
+// TODO: Add metrics for frames received per second
+// TODO: Handle WebSocket ping/pong for connection health
 @Component
 class InboundStreamHandler(
     private val deviceStreamManager: DeviceStreamManager,

@@ -1,4 +1,4 @@
-package com.thomas.espdoorbell.doorbell.streaming.model
+package com.thomas.espdoorbell.doorbell.streaming.websocket.protocol
 
 import java.nio.ByteBuffer
 import java.nio.ByteOrder

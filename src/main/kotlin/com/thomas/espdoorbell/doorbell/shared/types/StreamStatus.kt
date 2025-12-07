@@ -1,4 +1,4 @@
-package com.thomas.espdoorbell.doorbell.model.types
+package com.thomas.espdoorbell.doorbell.shared.types
 
 enum class StreamStatus {
     STREAMING,
