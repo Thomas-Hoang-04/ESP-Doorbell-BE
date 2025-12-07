@@ -42,49 +42,30 @@ data class StreamStopMessage(
 ) : MqttMessage()
 
 /**
- * Heartbeat message from ESP32
+ * Unified heartbeat message from ESP32 (merged heartbeat + status)
  * Topic: doorbell/{deviceId}/heartbeat
+ * 
+ * Contains device health information published periodically by ESP32.
  */
-data class HeartbeatMessage(
+data class DeviceHeartbeatMessage(
     @field:JsonProperty("device_id")
     override val deviceId: String,
     
     override val timestamp: Long,
     
     @field:JsonProperty("battery_level")
-    val batteryLevel: Int,
+    val batteryLevel: Int?,
     
     @field:JsonProperty("signal_strength")
-    val signalStrength: Int,
+    val signalStrength: Int?,
     
     val uptime: Long? = null,
     
     @field:JsonProperty("fw_ver")
-    val firmwareVersion: String? = null
+    val firmwareVersion: String? = null,
+    
+    @field:JsonProperty("is_active")
+    val isActive: Boolean = true
 ) : MqttMessage()
 
-/**
- * Status update message from ESP32
- * Topic: doorbell/{deviceId}/status
- */
-data class StatusMessage(
-    @field:JsonProperty("device_id")
-    override val deviceId: String,
-    
-    override val timestamp: Long,
-    
-    @field:JsonProperty("active")
-    val isActive: Boolean,
-
-    @field:JsonProperty("fw_ver")
-    val firmwareVersion: String,
-
-    @field:JsonProperty("battery_level")
-    val batteryLevel: Int? = null,
-    
-    @field:JsonProperty("signal_strength")
-    val signalStrength: Int? = null,
-    
-    val message: String? = null
-) : MqttMessage()
 
