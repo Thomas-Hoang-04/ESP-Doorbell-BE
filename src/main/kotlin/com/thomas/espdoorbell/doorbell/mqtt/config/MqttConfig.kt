@@ -24,7 +24,7 @@ class MqttConfig(
         return try {
             val persistence = MemoryPersistence()
             val client = MqttClient(brokerUrl, clientId, persistence)
-            
+
             logger.info("MQTT client created successfully")
             client
         } catch (e: MqttException) {
@@ -36,7 +36,7 @@ class MqttConfig(
     @Bean
     fun mqttConnectionOptions(): MqttConnectionOptions {
         val options = MqttConnectionOptions()
-        
+
         // Connection settings
         options.isAutomaticReconnect = mqttProperties.client.autoReconnect
         options.isCleanStart = mqttProperties.client.cleanSession

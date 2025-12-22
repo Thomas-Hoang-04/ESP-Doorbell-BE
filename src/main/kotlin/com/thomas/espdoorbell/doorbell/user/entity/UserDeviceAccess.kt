@@ -18,11 +18,11 @@ class UserDeviceAccess(
     @Suppress("unused")
     private val id: UUID = UUID.randomUUID(),
 
-    @Column( "user_id")
-    private val _user: UUID,
+    @Column("user_id")
+    val user: UUID,
 
     @Column("device_id")
-    private val _device: UUID,
+    val device: UUID,
 
     @Column("role")
     private val role: UserDeviceRole = UserDeviceRole.MEMBER,
@@ -38,16 +38,11 @@ class UserDeviceAccess(
     @Column("granted_status")
     private val accessStatus: DeviceAccess = DeviceAccess.GRANTED,
 ) {
-    val user: UUID
-        get() = _user
+    val springAuthority: String
+        get() = role.toSpringAuthority()
 
-    val device: UUID
-        get() = _device
-
-    fun toDto(
-        username: String? = null,
-    ): UserDeviceAccessDto = UserDeviceAccessDto(
-        userId = _user,
+    fun toDto(username: String? = null): UserDeviceAccessDto = UserDeviceAccessDto(
+        userId = user,
         deviceId = device,
         roleCode = role.name,
         roleLabel = role.toDisplayName(),
@@ -55,6 +50,6 @@ class UserDeviceAccess(
         accessStatusLabel = accessStatus.toDisplayName(),
         updatedAt = updatedAt,
         updatedByUserId = updatedBy,
-        updatedByUsername = username,
+        updatedByUsername = username
     )
 }

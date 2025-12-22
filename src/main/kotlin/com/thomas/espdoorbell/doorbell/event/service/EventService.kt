@@ -1,11 +1,12 @@
 package com.thomas.espdoorbell.doorbell.event.service
 
+import com.thomas.espdoorbell.doorbell.core.exception.EventNotFoundException
 import com.thomas.espdoorbell.doorbell.event.dto.EventDto
 import com.thomas.espdoorbell.doorbell.event.entity.Events
 import com.thomas.espdoorbell.doorbell.event.repository.EventRepository
 import com.thomas.espdoorbell.doorbell.event.request.EventCreateRequest
 import com.thomas.espdoorbell.doorbell.shared.types.StreamStatus
-import com.thomas.espdoorbell.doorbell.user.repository.UserProfileRepository
+import com.thomas.espdoorbell.doorbell.user.repository.UserRepository
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
@@ -24,7 +25,7 @@ import java.util.*
 @Service
 class EventService(
     private val eventRepository: EventRepository,
-    private val userProfileRepository: UserProfileRepository,
+    private val userRepository: UserRepository,
     private val r2dbcEntityTemplate: R2dbcEntityTemplate
 ) {
     // ========== READ ==========
@@ -46,7 +47,7 @@ class EventService(
     @Transactional(readOnly = true)
     suspend fun listEventsByDateRange(start: OffsetDateTime, end: OffsetDateTime): List<EventDto> {
         require(!start.isAfter(end)) { "Start date must not be after end date" }
-        val events = eventRepository.findByDateRange(start, end).toList()
+        val events = eventRepository.findByCreatedAtBetween(start, end).toList()
         if (events.isEmpty()) return emptyList()
         return getEventData(events)
     }
@@ -65,7 +66,7 @@ class EventService(
     @Transactional(readOnly = true)
     suspend fun getEvent(eventId: UUID): EventDto {
         val event = eventRepository.findById(eventId)
-            ?: throw NoSuchElementException("Event with id $eventId was not found")
+            ?: throw EventNotFoundException(eventId)
         return getEventData(listOf(event)).first()
     }
 
@@ -75,7 +76,7 @@ class EventService(
     // ========== CREATE ==========
 
     @Transactional
-    suspend fun recordEvent(request: EventCreateRequest): EventDto {
+    suspend fun createEvent(request: EventCreateRequest): EventDto {
         val event = Events(
             deviceId = request.deviceId,
             eventType = request.eventType
@@ -89,13 +90,13 @@ class EventService(
     @Transactional
     suspend fun updateStreamStatus(eventId: UUID, status: StreamStatus, endedAt: OffsetDateTime? = null) {
         eventRepository.findById(eventId)
-            ?: throw NoSuchElementException("Event with id $eventId was not found")
+            ?: throw EventNotFoundException(eventId)
 
         val query = Query.query(Criteria.where("id").`is`(eventId))
         var update = Update.update("stream_status", status.name)
-        
+
         endedAt?.let { update = update.set("stream_ended_at", it) }
-        
+
         r2dbcEntityTemplate.update(query, update, Events::class.java).awaitSingleOrNull()
     }
 
@@ -104,7 +105,7 @@ class EventService(
     @Transactional
     suspend fun archiveEvent(eventId: UUID) {
         eventRepository.findById(eventId)
-            ?: throw NoSuchElementException("Event with id $eventId was not found")
+            ?: throw EventNotFoundException(eventId)
         eventRepository.deleteById(eventId)
     }
 
@@ -112,10 +113,10 @@ class EventService(
 
     private suspend fun getEventData(events: List<Events>): List<EventDto> = coroutineScope {
         val responderIds = events.mapNotNull { it.respondedBy }.distinct()
-        
+
         val responders = if (responderIds.isNotEmpty()) {
             async {
-                userProfileRepository.findAllById(responderIds).toList().associateBy { it.id }
+                userRepository.findAllById(responderIds).toList().associateBy { it.id }
             }
         } else null
 

@@ -16,7 +16,7 @@ data class DeviceUpdateRequest(
     @field:JsonProperty("model")
     val modelName: String? = null,
 
-    @field:JsonProperty("firmware_ver")
+    @field:JsonProperty("fw_ver")
     val firmwareVersion: String? = null,
 
     @field:JsonProperty("is_active")

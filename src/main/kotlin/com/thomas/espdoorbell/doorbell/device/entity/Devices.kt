@@ -1,13 +1,21 @@
 package com.thomas.espdoorbell.doorbell.device.entity
 
 import com.thomas.espdoorbell.doorbell.device.dto.DeviceDto
-import com.thomas.espdoorbell.doorbell.shared.entity.BaseEntity
+import com.thomas.espdoorbell.doorbell.shared.validation.Validatable
+import org.springframework.data.annotation.CreatedDate
+import org.springframework.data.annotation.Id
+import org.springframework.data.annotation.LastModifiedDate
 import org.springframework.data.relational.core.mapping.Column
 import org.springframework.data.relational.core.mapping.Table
 import java.time.OffsetDateTime
+import java.util.UUID
 
 @Table(name = "devices")
 class Devices(
+    @Id
+    @Column("id")
+    val id: UUID? = null,
+
     @Column("device_id")
     private val deviceId: String,
 
@@ -34,7 +42,15 @@ class Devices(
 
     @Column("last_online")
     private val lastOnline: OffsetDateTime? = null,
-): BaseEntity() {
+
+    @LastModifiedDate
+    @Column("updated_at")
+    val updatedAt: OffsetDateTime? = null,
+
+    @CreatedDate
+    @Column("created_at")
+    val createdAt: OffsetDateTime? = null,
+): Validatable {
 
     init { validate() }
 
@@ -52,7 +68,7 @@ class Devices(
     }
 
     fun toDto(): DeviceDto = DeviceDto(
-        id = id,
+        id = id!!,
         deviceIdentifier = deviceId,
         displayName = name,
         locationDescription = location,

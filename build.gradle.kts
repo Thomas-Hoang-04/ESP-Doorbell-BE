@@ -40,6 +40,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
     implementation("org.eclipse.paho:org.eclipse.paho.mqttv5.client:1.2.5")
+    implementation("com.mailersend:java-sdk:1.4.1")
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     runtimeOnly("org.postgresql:postgresql")
     implementation("org.postgresql:r2dbc-postgresql")
