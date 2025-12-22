@@ -44,12 +44,19 @@ class WebExceptionHandler(
         val err = getError(req)
 
         val status = when (err) {
+            // Rate limit exception (needs special header handling)
+            is RateLimitExceededException -> HttpStatus.TOO_MANY_REQUESTS
+            // Domain exceptions (semantic - prioritized)
+            is EntityNotFoundException -> HttpStatus.NOT_FOUND
+            is EntityConflictException -> HttpStatus.CONFLICT
+            is InvalidOperationException -> HttpStatus.BAD_REQUEST
+            // Security exceptions
             is JWTVerificationException -> HttpStatus.UNAUTHORIZED
             is BadCredentialsException -> HttpStatus.UNAUTHORIZED
             is AccessDeniedException -> HttpStatus.FORBIDDEN
+            // Entity validation (from require() in entities)
             is IllegalArgumentException -> HttpStatus.BAD_REQUEST
-            is NoSuchElementException -> HttpStatus.NOT_FOUND
-            is IllegalStateException -> HttpStatus.CONFLICT
+            // Fallback
             else -> HttpStatus.INTERNAL_SERVER_ERROR
         }
 
@@ -60,8 +67,14 @@ class WebExceptionHandler(
             "path" to req.path()
         )
 
-        return ServerResponse.status(status)
+        val responseBuilder = ServerResponse.status(status)
             .contentType(MediaType.APPLICATION_JSON)
-            .body(BodyInserters.fromValue(resBody))
+
+        // Add Retry-After header for rate limit exceptions
+        if (err is RateLimitExceededException) {
+            responseBuilder.header("Retry-After", err.retryAfterSeconds.toString())
+        }
+
+        return responseBuilder.body(BodyInserters.fromValue(resBody))
     }
 }

@@ -19,7 +19,7 @@ data class DeviceRegister(
     @field:JsonProperty("model")
     val modelName: String? = null,
 
-    @field:JsonProperty("firmware_ver")
+    @field:JsonProperty("fw_ver")
     val firmwareVersion: String? = null,
 ) {
     fun toEntity(): Devices = Devices(

@@ -1,7 +1,9 @@
 package com.thomas.espdoorbell.doorbell.user.service
 
-import com.thomas.espdoorbell.doorbell.user.entity.UserCredentials
-import com.thomas.espdoorbell.doorbell.user.repository.UserCredentialRepository
+import com.thomas.espdoorbell.doorbell.user.entity.Users
+import com.thomas.espdoorbell.doorbell.user.repository.UserRepository
+import com.thomas.espdoorbell.doorbell.user.repository.UserDeviceAccessRepository
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.reactor.mono
 import org.springframework.security.core.userdetails.ReactiveUserDetailsService
 import org.springframework.security.core.userdetails.UserDetails
@@ -10,11 +12,13 @@ import reactor.core.publisher.Mono
 
 @Component
 class AuthServices(
-    private val userRepo: UserCredentialRepository
+    private val userRepo: UserRepository,
+    private val accessRepo: UserDeviceAccessRepository
 ): ReactiveUserDetailsService {
     override fun findByUsername(username: String?): Mono<UserDetails?> = mono {
         if (username == null) return@mono null
-        val user: UserCredentials = userRepo.findByLogin(username) ?: return@mono null
-        user.toPrincipal()
+        val user: Users = userRepo.findByLogin(username) ?: return@mono null
+        val deviceAccess = accessRepo.findAllByUser(user.id!!).toList()
+        user.toPrincipal(deviceAccess)
     }
 }

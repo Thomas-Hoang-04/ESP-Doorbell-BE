@@ -12,24 +12,15 @@ import java.util.*
 
 @Repository
 interface EventRepository : CoroutineCrudRepository<Events, UUID> {
-    
-    @Query("SELECT * FROM events WHERE device_id = :deviceId")
-    fun findAllByDeviceId(@Param("deviceId") deviceId: UUID): Flow<Events>
+    fun findAllByDeviceId(deviceId: UUID): Flow<Events>
 
-    @Query("SELECT * FROM events WHERE created_at BETWEEN :start AND :end")
-    fun findByDateRange(
-        @Param("start") start: OffsetDateTime,
-        @Param("end") end: OffsetDateTime
-    ): Flow<Events>
+    fun findByCreatedAtBetween(start: OffsetDateTime, end: OffsetDateTime): Flow<Events>
 
     @Query("SELECT * FROM events ORDER BY created_at DESC LIMIT :limit")
     fun findRecent(@Param("limit") limit: Int): Flow<Events>
 
-    @Query("SELECT COUNT(*) FROM events WHERE device_id = :deviceId")
-    suspend fun countByDeviceId(@Param("deviceId") deviceId: UUID): Long
-
-    @Query("SELECT * FROM events WHERE stream_status = :status")
-    fun findByStreamStatus(@Param("status") status: StreamStatus): Flow<Events>
+    suspend fun countByDeviceId(deviceId: UUID): Long
+    fun findByStreamStatus(status: StreamStatus): Flow<Events>
 }
 
 
