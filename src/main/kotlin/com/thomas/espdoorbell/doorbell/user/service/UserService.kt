@@ -108,9 +108,9 @@ class UserService(
         }
 
         val user = Users(
-            _username = request.username,
-            _email = request.email.lowercase(),
-            _pwd = passwordEncoder.encode(request.password)
+            username = request.username,
+            email = request.email.lowercase(),
+            pwd = passwordEncoder.encode(request.password)
         )
         val savedUser = userRepository.save(user)
 
