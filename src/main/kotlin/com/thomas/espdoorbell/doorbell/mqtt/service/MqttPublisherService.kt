@@ -24,9 +24,6 @@ class MqttPublisherService(
 ) {
     private val logger = LoggerFactory.getLogger(MqttPublisherService::class.java)
 
-    /**
-     * Publish a stream start request to an ESP32 device
-     */
     suspend fun publishStreamStart(deviceId: UUID, userId: UUID): Boolean {
         val message = StreamStartMessage(
             deviceId = deviceId.toString(),
@@ -38,56 +35,42 @@ class MqttPublisherService(
             deviceId.toString()
         )
 
-        // retained=false to avoid ESP32 getting stale commands on reconnection
         return publishMessage(topic, message, mqttProperties.qos.default, retained = false)
     }
 
-    /**
-     * Publish a stream stop request to an ESP32 device
-     */
     suspend fun publishStreamStop(deviceId: UUID): Boolean {
-        val message = StreamStopMessage(
-            deviceId = deviceId.toString()
-        )
+        val message = StreamStopMessage(deviceId = deviceId.toString())
 
         val topic = mqttProperties.formatTopic(
             mqttProperties.topics.streamStop,
             deviceId.toString()
         )
 
-        // retained=false to avoid ESP32 getting stale commands on reconnection
         return publishMessage(topic, message, mqttProperties.qos.default, retained = false)
     }
 
-    /**
-     * Publish a generic message object to a topic
-     */
+    @Suppress("SameParameterValue")
     private suspend fun publishMessage(topic: String, message: Any, qos: Int, retained: Boolean): Boolean {
         return try {
-            // Ensure connection
             if (!mqttConnectionManager.ensureConnected()) {
                 logger.error("Cannot publish message - MQTT client not connected")
                 return false
             }
 
-            // Serialize the message to JSON
             val jsonPayload = objectMapper.writeValueAsString(message)
             
-            // Create an MQTT message
             val mqttMessage = MqttMessage().apply {
                 payload = jsonPayload.toByteArray()
                 this.qos = qos
                 isRetained = retained
             }
 
-            // Publish on IO dispatcher (mqttClient.publish is blocking)
             withContext(Dispatchers.IO) {
                 mqttClient.publish(topic, mqttMessage)
             }
             
             logger.info("Published message to topic: $topic, qos: $qos")
             logger.debug("Message payload: $jsonPayload")
-            
             true
         } catch (e: Exception) {
             logger.error("Failed to publish message to topic: $topic", e)

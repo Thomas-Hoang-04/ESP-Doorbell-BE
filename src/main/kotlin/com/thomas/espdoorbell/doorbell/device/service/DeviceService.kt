@@ -1,9 +1,6 @@
 package com.thomas.espdoorbell.doorbell.device.service
 
-import com.thomas.espdoorbell.doorbell.core.exception.DeviceAccessNotFoundException
-import com.thomas.espdoorbell.doorbell.core.exception.DeviceAlreadyExistsException
-import com.thomas.espdoorbell.doorbell.core.exception.DeviceNotFoundException
-import com.thomas.espdoorbell.doorbell.core.exception.UserAlreadyHasAccessException
+import com.thomas.espdoorbell.doorbell.core.exception.DomainException
 import com.thomas.espdoorbell.doorbell.device.dto.DeviceDto
 import com.thomas.espdoorbell.doorbell.device.entity.Devices
 import com.thomas.espdoorbell.doorbell.device.repository.DeviceRepository
@@ -23,6 +20,7 @@ import org.springframework.data.relational.core.query.Criteria
 import org.springframework.data.relational.core.query.Query
 import org.springframework.data.relational.core.query.Update
 import org.springframework.security.access.AccessDeniedException
+import org.springframework.security.crypto.argon2.Argon2PasswordEncoder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.OffsetDateTime
@@ -32,7 +30,8 @@ import java.util.*
 class DeviceService(
     private val deviceRepository: DeviceRepository,
     private val userDeviceAccessRepository: UserDeviceAccessRepository,
-    private val r2dbcEntityTemplate: R2dbcEntityTemplate
+    private val r2dbcEntityTemplate: R2dbcEntityTemplate,
+    private val passwordEncoder: Argon2PasswordEncoder
 ) {
     // ========== READ ==========
     
@@ -50,30 +49,26 @@ class DeviceService(
     @Transactional(readOnly = true)
     suspend fun getDevice(deviceId: UUID): DeviceDto =
         deviceRepository.findById(deviceId)?.toDto()
-            ?: throw DeviceNotFoundException(deviceId)
+            ?: throw DomainException.EntityNotFound.Device("id", deviceId.toString())
 
     @Transactional(readOnly = true)
     suspend fun getDeviceByIdentifier(identifier: String): DeviceDto =
-        deviceRepository.findByIdentifier(identifier).firstOrNull()?.toDto()
-            ?: throw DeviceNotFoundException(identifier)
+        deviceRepository.findByDeviceId(identifier)?.toDto()
+            ?: throw DomainException.EntityNotFound.Device("identifier", identifier)
 
     suspend fun listDeviceAccess(deviceId: UUID): Flow<UserDeviceAccessDto> =
         userDeviceAccessRepository.findAllByDevice(deviceId).map { it.toDto() }
 
     // ========== CREATE ==========
 
-    /**
-     * Create a new device and auto-assign the creator as OWNER.
-     * @param device Device registration details
-     * @param creatorId UUID of the user creating the device (becomes OWNER)
-     */
     @Transactional
     suspend fun createDevice(device: DeviceRegister, creatorId: UUID): DeviceDto {
         if (deviceRepository.existsByIdentifier(device.deviceID)) {
-            throw DeviceAlreadyExistsException(device.deviceID)
+            throw DomainException.EntityConflict.DeviceAlreadyExists(device.deviceID)
         }
-        
-        val savedDevice = deviceRepository.save(device.toEntity())
+
+        val hashedKey = passwordEncoder.encode(device.deviceKey)
+        val savedDevice = deviceRepository.save(device.toEntity(hashedKey))
         
         // Auto-assign creator as OWNER of the device
         val ownerAccess = UserDeviceAccess(
@@ -92,7 +87,7 @@ class DeviceService(
     suspend fun updateDevice(deviceId: UUID, request: DeviceUpdateRequest): DeviceDto {
         // Verify device exists
         deviceRepository.findById(deviceId)
-            ?: throw DeviceNotFoundException(deviceId)
+            ?: throw DomainException.EntityNotFound.Device("id", deviceId.toString())
 
         val query = Query.query(Criteria.where("id").`is`(deviceId))
         
@@ -113,6 +108,7 @@ class DeviceService(
         }
 
         return getDevice(deviceId)
+        // TODO: Rework to return status of update instead of fetching again
     }
 
     /**
@@ -148,7 +144,7 @@ class DeviceService(
     @Transactional
     suspend fun deleteDevice(deviceId: UUID) {
         deviceRepository.findById(deviceId)
-            ?: throw DeviceNotFoundException(deviceId)
+            ?: throw DomainException.EntityNotFound.Device("id", deviceId.toString())
         deviceRepository.deleteById(deviceId)
     }
 
@@ -174,6 +170,11 @@ class DeviceService(
         userDeviceAccessRepository.findByDeviceAndUser(deviceId, userId)
             .firstOrNull() != null
 
+    suspend fun verifyDeviceKey(deviceId: UUID, rawDeviceKey: String): Boolean {
+        val device = deviceRepository.findById(deviceId) ?: return false
+        return passwordEncoder.matches(rawDeviceKey, device.deviceKey)
+    }
+
     /**
      * Grant access to a device for a user.
      * @param deviceId Device to grant access to
@@ -188,9 +189,8 @@ class DeviceService(
     ): UserDeviceAccessDto {
         // Verify device exists
         deviceRepository.findById(deviceId)
-            ?: throw DeviceNotFoundException(deviceId)
+            ?: throw DomainException.EntityNotFound.Device("id", deviceId.toString())
 
-        // Verify the granter is the owner
         verifyOwnership(deviceId, grantedBy)
 
         // Check if user already has access
@@ -199,7 +199,7 @@ class DeviceService(
             .firstOrNull()
         
         if (existingAccess != null) {
-            throw UserAlreadyHasAccessException(deviceId, request.userId)
+            throw DomainException.EntityConflict.UserAlreadyHasAccess(deviceId, request.userId)
         }
 
         val newAccess = UserDeviceAccess(
@@ -223,15 +223,14 @@ class DeviceService(
     ): UserDeviceAccessDto {
         // Verify device exists
         deviceRepository.findById(deviceId)
-            ?: throw DeviceNotFoundException(deviceId)
+            ?: throw DomainException.EntityNotFound.Device("id", deviceId.toString())
 
-        // Verify the updater is the owner
         verifyOwnership(deviceId, updatedBy)
 
         // Find existing access
         val existingAccess = userDeviceAccessRepository
             .findByDeviceAndUser(deviceId, targetUserId)
-            .firstOrNull() ?: throw DeviceAccessNotFoundException(deviceId, targetUserId)
+            .firstOrNull() ?: throw DomainException.AccessDenied(targetUserId.toString(), deviceId.toString())
 
         // Update via template (since entity is immutable)
         val query = Query.query(
@@ -256,9 +255,8 @@ class DeviceService(
     ) {
         // Verify device exists
         deviceRepository.findById(deviceId)
-            ?: throw DeviceNotFoundException(deviceId)
+            ?: throw DomainException.EntityNotFound.Device("id", deviceId.toString())
 
-        // Verify the revoker is the owner
         verifyOwnership(deviceId, revokedBy)
 
         // Prevent owner from revoking their own access
@@ -269,7 +267,7 @@ class DeviceService(
         // Find and delete access
         val existingAccess = userDeviceAccessRepository
             .findByDeviceAndUser(deviceId, targetUserId)
-            .firstOrNull() ?: throw DeviceAccessNotFoundException(deviceId, targetUserId)
+            .firstOrNull() ?: throw DomainException.AccessDenied(targetUserId.toString(), deviceId.toString())
 
         userDeviceAccessRepository.delete(existingAccess)
     }

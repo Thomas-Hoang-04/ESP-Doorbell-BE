@@ -11,6 +11,7 @@ import java.time.OffsetDateTime
 import java.util.UUID
 
 @Table(name = "devices")
+@Suppress("unused")
 class Devices(
     @Id
     @Column("id")
@@ -18,6 +19,9 @@ class Devices(
 
     @Column("device_id")
     private val deviceId: String,
+
+    @Column("device_key")
+    val deviceKey: String,
 
     @Column("name")
     private val name: String,

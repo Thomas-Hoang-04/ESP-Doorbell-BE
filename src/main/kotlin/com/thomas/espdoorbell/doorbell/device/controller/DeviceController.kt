@@ -24,56 +24,34 @@ class DeviceController(
 
     // ========== READ OPERATIONS ==========
 
-    /**
-     * List all devices. Any authenticated user can access.
-     */
     @GetMapping
     suspend fun listDevices(): List<DeviceDto> =
         deviceService.listDevices().toList()
 
-    /**
-     * List active devices only.
-     */
     @GetMapping("/active")
     suspend fun listActiveDevices(): List<DeviceDto> =
         deviceService.listActiveDevices().toList()
 
-    /**
-     * List devices that have been online within the specified time window.
-     */
     @GetMapping("/online")
     suspend fun listOnlineDevices(
         @RequestParam(defaultValue = "5") withinMinutes: Int
     ): List<DeviceDto> =
         deviceService.listOnlineDevices(withinMinutes).toList()
 
-    /**
-     * List devices with low battery.
-     */
     @GetMapping("/low-battery")
     suspend fun listLowBatteryDevices(
         @RequestParam(defaultValue = "20") threshold: Int
     ): List<DeviceDto> =
         deviceService.listLowBatteryDevices(threshold).toList()
 
-    /**
-     * Get a specific device by ID.
-     */
     @GetMapping("/{id}")
     suspend fun getDevice(@PathVariable id: UUID): DeviceDto =
         deviceService.getDevice(id)
 
-    /**
-     * Get a device by its hardware identifier.
-     */
     @GetMapping("/identifier/{identifier}")
     suspend fun getDeviceByIdentifier(@PathVariable identifier: String): DeviceDto =
         deviceService.getDeviceByIdentifier(identifier)
 
-    /**
-     * List all users who have access to a device.
-     * Only device owner can view access list.
-     */
     @GetMapping("/{id}/access")
     suspend fun listDeviceAccess(
         @PathVariable id: UUID,
@@ -85,10 +63,6 @@ class DeviceController(
 
     // ========== CREATE OPERATIONS ==========
 
-    /**
-     * Register a new device.
-     * Any authenticated user can create a device and becomes its OWNER.
-     */
     @PostMapping
     suspend fun createDevice(
         @Valid @RequestBody request: DeviceRegister,
@@ -100,10 +74,6 @@ class DeviceController(
 
     // ========== UPDATE OPERATIONS ==========
 
-    /**
-     * Update device details.
-     * Only device owner can update.
-     */
     @PatchMapping("/{id}")
     suspend fun updateDevice(
         @PathVariable id: UUID,
@@ -116,10 +86,6 @@ class DeviceController(
 
     // ========== DELETE OPERATIONS ==========
 
-    /**
-     * Delete a device.
-     * Only device owner can delete.
-     */
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     suspend fun deleteDevice(
@@ -132,10 +98,6 @@ class DeviceController(
 
     // ========== ACCESS MANAGEMENT ==========
 
-    /**
-     * Grant a user access to a device.
-     * Only device owner can grant access.
-     */
     @PostMapping("/{id}/access")
     suspend fun grantDeviceAccess(
         @PathVariable id: UUID,
@@ -146,10 +108,6 @@ class DeviceController(
         return ResponseEntity.status(HttpStatus.CREATED).body(access)
     }
 
-    /**
-     * Update a user's role for a device.
-     * Only device owner can update roles.
-     */
     @PatchMapping("/{id}/access/{userId}")
     suspend fun updateDeviceAccess(
         @PathVariable id: UUID,
@@ -159,10 +117,6 @@ class DeviceController(
     ): UserDeviceAccessDto =
         deviceService.updateDeviceAccess(id, userId, role, principal.id)
 
-    /**
-     * Revoke a user's access to a device.
-     * Only device owner can revoke access.
-     */
     @DeleteMapping("/{id}/access/{userId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     suspend fun revokeDeviceAccess(
