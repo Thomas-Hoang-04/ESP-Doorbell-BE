@@ -9,16 +9,15 @@ spring:
     time-zone: UTC
 
 streaming:
+  websocket-base-url: ws://localhost:8080
   ffmpeg:
     path: ffmpeg
-    segment-duration: 2
     video-bitrate: 1M
     audio-bitrate: 128k
-  buffer:
-    max-size: 50
-    max-reorder-delay-ms: 500
-    max-sequence-gap: 10
-  segment:
-    buffer-count: 5
-    cleanup-threshold: 10
-  working-directory: ./streams
+    cluster-time-ms: 500
+  tcp:
+    video-port: 5001
+    audio-port: 5002
+  sync:
+    max-sync-wait-ms: 500
+    max-queue-size: 100

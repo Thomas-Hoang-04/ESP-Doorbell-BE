@@ -53,10 +53,10 @@ CREATE TYPE granted_status_enum AS ENUM (
 );
 
 -- ============================================================================
--- USER TABLES
+-- USER TABLE
 -- ============================================================================
 
-CREATE TABLE user_credentials (
+CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     username VARCHAR(50) UNIQUE,
     email VARCHAR(255) NOT NULL UNIQUE,
@@ -75,34 +75,6 @@ CREATE TABLE user_credentials (
     )
 );
 
-CREATE TABLE user_profiles (
-    id UUID PRIMARY KEY REFERENCES user_credentials(id) ON DELETE CASCADE,
-    full_name VARCHAR(255) NOT NULL,
-    phone_number VARCHAR(15) NOT NULL UNIQUE,
-    notification_enabled BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT phone_num_format_chk CHECK (
-        phone_number ~ '^0[1-9][0-9]+$' OR phone_number ~ '^\+84[1-9][0-9]+$'
-    )
-);
-
--- Phone normalization trigger
-CREATE OR REPLACE FUNCTION normalize_user_profile_phone()
-RETURNS TRIGGER AS $$
-BEGIN
-    IF NEW.phone_number LIKE '0%' THEN
-        NEW.phone_number := '+84' || substring(NEW.phone_number FROM 2);
-    END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER user_profiles_phone_normalization
-    BEFORE INSERT OR UPDATE ON user_profiles
-    FOR EACH ROW EXECUTE FUNCTION normalize_user_profile_phone();
-
 -- ============================================================================
 -- DEVICES
 -- ============================================================================
@@ -110,6 +82,7 @@ CREATE TRIGGER user_profiles_phone_normalization
 CREATE TABLE devices (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     device_id VARCHAR(100) UNIQUE NOT NULL,
+    device_key VARCHAR(255) UNIQUE NOT NULL,
     name VARCHAR(255) NOT NULL,
     location VARCHAR(255),
     model VARCHAR(100),
@@ -128,12 +101,12 @@ CREATE TABLE devices (
 
 CREATE TABLE user_device_access (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES user_credentials(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     device_id UUID NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
     role user_role_enum NOT NULL DEFAULT 'MEMBER',
     granted_status granted_status_enum NOT NULL DEFAULT 'GRANTED',
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    updated_by UUID REFERENCES user_credentials(id) ON DELETE SET NULL
+    updated_by UUID REFERENCES users(id) ON DELETE SET NULL
 );
 
 -- ============================================================================
@@ -143,22 +116,22 @@ CREATE TABLE user_device_access (
 CREATE TABLE events (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     device_id UUID NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
-    
+
     -- Event info
     event_timestamp TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     event_type event_type_enum NOT NULL DEFAULT 'DOORBELL_RING',
-    
+
     -- Response tracking
     response_type response_type_enum NOT NULL DEFAULT 'PENDING',
     response_timestamp TIMESTAMPTZ,
-    responded_by UUID REFERENCES user_credentials(id) ON DELETE SET NULL,
-    
+    responded_by UUID REFERENCES users(id) ON DELETE SET NULL,
+
     -- Stream info (merged from event_streams)
     stream_status stream_status_enum DEFAULT 'STREAMING',
     stream_started_at TIMESTAMPTZ,
     stream_ended_at TIMESTAMPTZ,
     duration_seconds INTEGER CHECK (duration_seconds >= 0),
-    
+
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
 
@@ -171,15 +144,24 @@ CREATE TABLE events (
 );
 
 -- ============================================================================
+-- USER FCM TOKENS (Push Notifications)
+-- ============================================================================
+
+CREATE TABLE user_fcm_tokens (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token TEXT NOT NULL,
+    last_updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT unique_user_token UNIQUE (user_id, token)
+);
+
+-- ============================================================================
 -- INDEXES
 -- ============================================================================
 
-CREATE INDEX idx_user_credentials_email ON user_credentials(email);
-CREATE INDEX idx_user_credentials_username ON user_credentials(username) WHERE username IS NOT NULL;
-CREATE INDEX idx_user_credentials_active ON user_credentials(is_active) WHERE is_active = TRUE;
+CREATE INDEX idx_users_active ON users(is_active) WHERE is_active = TRUE;
 
 CREATE INDEX idx_devices_active ON devices(is_active) WHERE is_active = TRUE;
-CREATE INDEX idx_devices_device_id ON devices(device_id);
 
 CREATE INDEX idx_user_device_access_user ON user_device_access(user_id, role);
 CREATE INDEX idx_user_device_access_device ON user_device_access(device_id, role);
@@ -188,36 +170,29 @@ CREATE INDEX idx_events_device_timestamp ON events(device_id, event_timestamp DE
 CREATE INDEX idx_events_timestamp ON events(event_timestamp DESC);
 CREATE INDEX idx_events_stream_status ON events(stream_status) WHERE stream_status IN ('STREAMING', 'PROCESSING');
 
--- ============================================================================
--- TRIGGERS
--- ============================================================================
-
-CREATE OR REPLACE FUNCTION update_updated_at()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = CURRENT_TIMESTAMP;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER user_credentials_updated_at BEFORE UPDATE ON user_credentials
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at();
-
-CREATE TRIGGER user_profiles_updated_at BEFORE UPDATE ON user_profiles
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at();
-
-CREATE TRIGGER devices_updated_at BEFORE UPDATE ON devices
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at();
-
-CREATE TRIGGER events_updated_at BEFORE UPDATE ON events
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE INDEX idx_user_fcm_tokens_user ON user_fcm_tokens(user_id);
 
 -- ============================================================================
 -- SAMPLE DATA
 -- ============================================================================
 
-INSERT INTO devices (device_id, name, location, model, firmware_version)
-VALUES
-    ('DB001', 'Front Door', 'Main Entrance', 'SmartBell Pro', '2.4.1'),
-    ('DB002', 'Back Door', 'Garden Entry', 'SmartBell Lite', '2.3.8')
-ON CONFLICT (device_id) DO NOTHING;
+-- INSERT INTO devices (device_id, name, location, model, firmware_version)
+-- VALUES
+--     ('DB001', 'Front Door', 'Main Entrance', 'SmartBell Pro', '2.4.1'),
+--     ('DB002', 'Back Door', 'Garden Entry', 'SmartBell Lite', '2.3.8')
+-- ON CONFLICT (device_id) DO NOTHING;
+
+-- INSERT INTO users (username, email, password)
+-- VALUES
+--     ('thomas', 'thomas@example.com', 'admin_password')
+-- ON CONFLICT (email) DO NOTHING;
+
+-- UPDATE users
+-- SET is_email_verified = TRUE
+-- WHERE email = 'thomas@example.com';
+
+-- INSERT INTO user_device_access (user_id, device_id, role, granted_status)
+-- VALUES
+--     ('thomas@example.com', 'DB001', 'OWNER', 'GRANTED'),
+--     ('thomas@example.com', 'DB002', 'MEMBER', 'GRANTED');
+
