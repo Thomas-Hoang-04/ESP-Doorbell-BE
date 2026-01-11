@@ -3,7 +3,9 @@ package com.thomas.espdoorbell.doorbell.mqtt.service
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.thomas.espdoorbell.doorbell.mqtt.config.MqttProperties
 import com.thomas.espdoorbell.doorbell.mqtt.handler.DeviceHeartbeatHandler
+import com.thomas.espdoorbell.doorbell.mqtt.handler.BellEventHandler
 import com.thomas.espdoorbell.doorbell.mqtt.model.DeviceHeartbeatMessage
+import com.thomas.espdoorbell.doorbell.mqtt.model.BellEventMessage
 import jakarta.annotation.PostConstruct
 import jakarta.annotation.PreDestroy
 import kotlinx.coroutines.CoroutineScope
@@ -29,6 +31,7 @@ class MqttSubscriberService(
     private val mqttProperties: MqttProperties,
     private val mqttConnectionManager: MqttConnectionManager,
     private val deviceHeartbeatHandler: DeviceHeartbeatHandler,
+    private val bellEventHandler: BellEventHandler,
     private val objectMapper: ObjectMapper
 ) {
     private val logger = LoggerFactory.getLogger(MqttSubscriberService::class.java)
@@ -39,12 +42,10 @@ class MqttSubscriberService(
     fun initialize() {
         logger.info("Initializing MQTT Subscriber Service")
         
-        // Register message handler with connection manager (no callback conflict)
         mqttConnectionManager.registerMessageHandler { topic, message ->
             handleMessage(topic, message)
         }
         
-        // Register on-connect callback to subscribe to topics
         mqttConnectionManager.registerOnConnectCallback { reconnect, serverURI ->
             logger.info("Connection callback triggered. Reconnect: $reconnect, Server: $serverURI")
             subscribeToTopics()
@@ -69,6 +70,10 @@ class MqttSubscriberService(
             mqttClient.subscribe(heartbeatTopic, mqttProperties.qos.heartbeat)
             logger.info("Subscribed to heartbeat topic: $heartbeatTopic")
 
+            val bellEventTopic = mqttProperties.topics.bellEvent
+            mqttClient.subscribe(bellEventTopic, mqttProperties.qos.bellEvent)
+            logger.info("Subscribed to bell event topic: $bellEventTopic")
+
         } catch (e: MqttException) {
             logger.error("Failed to subscribe to topics", e)
         }
@@ -90,6 +95,7 @@ class MqttSubscriberService(
 
         when {
             topic.contains("/heartbeat") -> processHeartbeatMessage(payload)
+            topic.contains("/event/bell") -> processBellEventMessage(payload)
             else -> logger.warn("Unknown topic pattern: $topic")
         }
     }
@@ -100,6 +106,15 @@ class MqttSubscriberService(
             deviceHeartbeatHandler.handleHeartbeat(heartbeatMessage)
         } catch (e: Exception) {
             logger.error("Failed to parse heartbeat message: $payload", e)
+        }
+    }
+
+    private suspend fun processBellEventMessage(payload: String) {
+        try {
+            val bellEventMessage = objectMapper.readValue(payload, BellEventMessage::class.java)
+            bellEventHandler.handleBellEvent(bellEventMessage)
+        } catch (e: Exception) {
+            logger.error("Failed to parse bell event message: $payload", e)
         }
     }
 }

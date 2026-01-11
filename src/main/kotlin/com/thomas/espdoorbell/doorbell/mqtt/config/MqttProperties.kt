@@ -3,50 +3,56 @@ package com.thomas.espdoorbell.doorbell.mqtt.config
 import jakarta.annotation.PostConstruct
 import org.slf4j.LoggerFactory
 import org.springframework.boot.context.properties.ConfigurationProperties
-import org.springframework.context.annotation.Configuration
 
-@Configuration
 @ConfigurationProperties(prefix = "mqtt")
 data class MqttProperties(
-    var broker: BrokerSettings = BrokerSettings(),
-    var client: ClientSettings = ClientSettings(),
-    var topics: TopicSettings = TopicSettings(),
-    var qos: QosSettings = QosSettings()
+    val broker: BrokerSettings,
+    val client: ClientSettings,
+    val topics: TopicSettings,
+    val qos: QosSettings,
 ) {
     private val logger = LoggerFactory.getLogger(MqttProperties::class.java)
 
     data class BrokerSettings(
-        var url: String = "tcp://localhost",
-        var port: Int = 1883,
-        var username: String = "",
-        var password: String = ""
+        val url: String = "tcp://localhost",
+        val port: Int = 1883,
+        val username: String,
+        val password: String,
+        val ssl: SslSettings? = null,
+    )
+
+    data class SslSettings(
+        val enabled: Boolean = false,
+        val caPath: String? = null,
+        val clientCertPath: String? = null,
+        val clientKeyPath: String? = null,
     )
 
     data class ClientSettings(
-        var id: String = "esp-doorbell-server",
-        var autoReconnect: Boolean = true,
-        var cleanSession: Boolean = false,
-        var connectionTimeout: Int = 30,
-        var keepAliveInterval: Int = 60
+        val id: String,
+        val autoReconnect: Boolean = true,
+        val cleanSession: Boolean = false,
+        val connectionTimeout: Int = 30,
+        val keepAliveInterval: Int = 60
     )
 
     data class TopicSettings(
-        var prefix: String = "doorbell",
-        var streamStart: String = "doorbell/{deviceId}/stream/start",
-        var streamStop: String = "doorbell/{deviceId}/stream/stop",
-        var heartbeat: String = "doorbell/+/heartbeat"
+        val prefix: String,
+        val streamStart: String,
+        val streamStop: String,
+        val heartbeat: String,
+        val bellEvent: String,
     )
 
     data class QosSettings(
-        var default: Int = 1,
-        var heartbeat: Int = 1
+        val default: Int = 1,
+        val heartbeat: Int = 0,
+        val bellEvent: Int = 1
     )
 
-    /** Full broker URL with port */
     val brokerUrl: String
         get() = "${broker.url}:${broker.port}"
 
-    /** Format a topic template with device ID */
     fun formatTopic(template: String, deviceId: String): String =
         template.replace("{deviceId}", deviceId)
 

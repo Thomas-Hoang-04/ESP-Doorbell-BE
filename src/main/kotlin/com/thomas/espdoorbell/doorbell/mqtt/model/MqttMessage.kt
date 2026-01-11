@@ -2,18 +2,11 @@ package com.thomas.espdoorbell.doorbell.mqtt.model
 
 import com.fasterxml.jackson.annotation.JsonProperty
 
-/**
- * Base sealed class for all MQTT message types
- */
 sealed class MqttMessage {
     abstract val deviceId: String
     abstract val timestamp: Long
 }
 
-/**
- * Message to trigger ESP32 to start streaming
- * Topic: doorbell/{deviceId}/stream/start
- */
 data class StreamStartMessage(
     val action: String = "start_stream",
 
@@ -28,10 +21,6 @@ data class StreamStartMessage(
     val quality: String = "high"
 ) : MqttMessage()
 
-/**
- * Message to stop ESP32 streaming
- * Topic: doorbell/{deviceId}/stream/stop
- */
 data class StreamStopMessage(
     val action: String = "stop_stream",
 
@@ -41,17 +30,14 @@ data class StreamStopMessage(
     override val timestamp: Long = System.currentTimeMillis()
 ) : MqttMessage()
 
-/**
- * Unified heartbeat message from ESP32 (merged heartbeat + status)
- * Topic: doorbell/{deviceId}/heartbeat
- *
- * Contains device health information published periodically by ESP32.
- */
 data class DeviceHeartbeatMessage(
     @field:JsonProperty("device_id")
     override val deviceId: String,
 
     override val timestamp: Long,
+
+    @field:JsonProperty("device_key")
+    val deviceKey: String? = null,
 
     @field:JsonProperty("battery_level")
     val batteryLevel: Int?,
@@ -66,6 +52,18 @@ data class DeviceHeartbeatMessage(
 
     @field:JsonProperty("is_active")
     val isActive: Boolean = true
+) : MqttMessage()
+
+data class BellEventMessage(
+    @field:JsonProperty("device_id")
+    override val deviceId: String,
+
+    override val timestamp: Long = System.currentTimeMillis(),
+
+    @field:JsonProperty("device_key")
+    val deviceKey: String? = null,
+
+    val event: String = "bell_pressed"
 ) : MqttMessage()
 
 

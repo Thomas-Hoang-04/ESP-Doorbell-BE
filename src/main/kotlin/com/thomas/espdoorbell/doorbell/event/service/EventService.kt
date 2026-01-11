@@ -1,6 +1,6 @@
 package com.thomas.espdoorbell.doorbell.event.service
 
-import com.thomas.espdoorbell.doorbell.core.exception.EventNotFoundException
+import com.thomas.espdoorbell.doorbell.core.exception.DomainException
 import com.thomas.espdoorbell.doorbell.event.dto.EventDto
 import com.thomas.espdoorbell.doorbell.event.entity.Events
 import com.thomas.espdoorbell.doorbell.event.repository.EventRepository
@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional
 import java.time.OffsetDateTime
 import java.util.*
 
+// TODO: Rework and recycle Events related logic
 @Service
 class EventService(
     private val eventRepository: EventRepository,
@@ -66,7 +67,7 @@ class EventService(
     @Transactional(readOnly = true)
     suspend fun getEvent(eventId: UUID): EventDto {
         val event = eventRepository.findById(eventId)
-            ?: throw EventNotFoundException(eventId)
+            ?: throw DomainException.EntityNotFound.Event("id", eventId.toString())
         return getEventData(listOf(event)).first()
     }
 
@@ -90,7 +91,7 @@ class EventService(
     @Transactional
     suspend fun updateStreamStatus(eventId: UUID, status: StreamStatus, endedAt: OffsetDateTime? = null) {
         eventRepository.findById(eventId)
-            ?: throw EventNotFoundException(eventId)
+            ?: throw DomainException.EntityNotFound.Event("id", eventId.toString())
 
         val query = Query.query(Criteria.where("id").`is`(eventId))
         var update = Update.update("stream_status", status.name)
@@ -105,7 +106,7 @@ class EventService(
     @Transactional
     suspend fun archiveEvent(eventId: UUID) {
         eventRepository.findById(eventId)
-            ?: throw EventNotFoundException(eventId)
+            ?: throw DomainException.EntityNotFound.Event("id", eventId.toString())
         eventRepository.deleteById(eventId)
     }
 

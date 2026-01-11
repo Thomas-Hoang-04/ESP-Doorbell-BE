@@ -21,9 +21,14 @@ data class DeviceRegister(
 
     @field:JsonProperty("fw_ver")
     val firmwareVersion: String? = null,
+
+    @field:NotBlank(message = "Device key can not be blank")
+    @field:JsonProperty("device_key")
+    val deviceKey: String,
 ) {
-    fun toEntity(): Devices = Devices(
+    fun toEntity(hashedKey: String): Devices = Devices(
         deviceId = deviceID,
+        deviceKey = hashedKey,
         name = displayName,
         location = locationDescription,
         model = modelName,
