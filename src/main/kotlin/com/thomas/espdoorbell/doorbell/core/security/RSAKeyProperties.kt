@@ -6,11 +6,11 @@ import java.security.interfaces.RSAPrivateKey
 import java.security.interfaces.RSAPublicKey
 
 @Component
-class RSAKeyProperties {
-    private final val _publicKey: RSAPublicKey
+object RSAKeyProperties {
+    private val _publicKey: RSAPublicKey
     val publicKey: RSAPublicKey
         get() = _publicKey
-    private final val _privateKey: RSAPrivateKey
+    private val _privateKey: RSAPrivateKey
     val privateKey: RSAPrivateKey
         get() = _privateKey
 
