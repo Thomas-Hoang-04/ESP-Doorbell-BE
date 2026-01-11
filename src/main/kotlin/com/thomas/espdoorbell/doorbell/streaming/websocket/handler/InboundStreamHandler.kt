@@ -49,18 +49,25 @@ class InboundStreamHandler(
 
         logger.info("Inbound connection established for device $deviceId, session ${session.id}")
 
-        // Validate device exists and registers inbound connection
         return mono {
             try {
-                // Validate device exists
-                deviceService.getDevice(deviceId)
-                
-                // Register inbound connection (enforces single ESP32 per device)
+                val deviceKey = session.handshakeInfo.headers.getFirst("X-Device-Key")
+                if (deviceKey.isNullOrBlank()) {
+                    logger.warn("Missing X-Device-Key header for device $deviceId")
+                    throw SecurityException("Missing device key")
+                }
+
+                val isValidKey = deviceService.verifyDeviceKey(deviceId, deviceKey)
+                if (!isValidKey) {
+                    logger.warn("Invalid device key for device $deviceId")
+                    throw SecurityException("Invalid device key")
+                }
+
                 deviceStreamManager.registerInbound(deviceId, session.id)
                 
-                logger.info("Device $deviceId validated and registered")
+                logger.info("Device $deviceId authenticated and registered")
             } catch (e: Exception) {
-                logger.error("Failed to validate or register device $deviceId", e)
+                logger.error("Failed to authenticate or register device $deviceId", e)
                 throw e
             }
         }.flatMap {
@@ -69,29 +76,24 @@ class InboundStreamHandler(
                 .doOnNext { message ->
                     if (message.type == WebSocketMessage.Type.BINARY) {
                         try {
-                            val buffer = ByteBuffer.allocateDirect(
-                                message.payload.readableByteCount()
-                            ).apply {
-                                message.payload.toByteBuffer(this)
-                                flip()
+                            val packet = message.payload.let {
+                                val buffer = ByteBuffer.allocate(it.readableByteCount())
+                                it.toByteBuffer(buffer)
+                                buffer.flip()
+                                buffer.parseStreamPacket()
                             }
-                            val packet = buffer.parseStreamPacket()
 
                             if (packet == null) {
                                 logger.warn("Failed to parse packet from device $deviceId")
                                 return@doOnNext
                             }
 
-                            // Convert PTS from milliseconds to microseconds
                             val ptsMicros = packet.ptsMillis * 1000L
-                            val dtsMicros = ptsMicros // Use same value for DTS
 
-                            // Log received packet
                             logger.debug(
-                                "Received {} packet from device {}: seq={}, pts={}ms, size={} bytes",
+                                "Received {} packet from device {}: pts={}ms, size={} bytes",
                                 packet.type.name,
                                 deviceId,
-                                packet.sequenceNumber,
                                 packet.ptsMillis,
                                 packet.payload.size
                             )
@@ -102,18 +104,14 @@ class InboundStreamHandler(
                                     deviceStreamManager.feedVideoFrame(
                                         deviceId = deviceId,
                                         jpegData = packet.payload,
-                                        pts = ptsMicros,
-                                        dts = dtsMicros,
-                                        sequenceNumber = packet.sequenceNumber
+                                        pts = ptsMicros
                                     )
                                 }
                                 StreamPacket.PacketType.AUDIO -> {
                                     deviceStreamManager.feedAudioFrame(
                                         deviceId = deviceId,
                                         aacData = packet.payload,
-                                        pts = ptsMicros,
-                                        dts = dtsMicros,
-                                        sequenceNumber = packet.sequenceNumber
+                                        pts = ptsMicros
                                     )
                                 }
                             }

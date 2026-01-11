@@ -1,38 +1,32 @@
 package com.thomas.espdoorbell.doorbell.streaming.websocket.handler
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.thomas.espdoorbell.doorbell.streaming.websocket.protocol.SegmentData
+import com.thomas.espdoorbell.doorbell.core.jwt.JWTManager
+import com.thomas.espdoorbell.doorbell.device.service.DeviceService
 import com.thomas.espdoorbell.doorbell.streaming.pipeline.DeviceStreamManager
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.reactive.asPublisher
+import kotlinx.coroutines.reactor.mono
 import org.slf4j.LoggerFactory
-import org.springframework.core.io.buffer.DataBufferFactory
+import org.springframework.http.HttpHeaders
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.socket.WebSocketHandler
 import org.springframework.web.reactive.socket.WebSocketMessage
 import org.springframework.web.reactive.socket.WebSocketSession
 import reactor.core.publisher.Mono
-import java.util.*
+import java.util.UUID
 
-/**
- * WebSocket handler for outbound Android client connections
- * Sends WebM segments with JSON metadata to clients
- */
-// TODO: Validate user authentication via JWT from handshake
-// TODO: Check user device access permissions before allowing connection
-// TODO: Add metrics for segments sent, client latency
-// TODO: Implement graceful degradation (skip segments if client is slow)
 @Component
 class OutboundStreamHandler(
     private val deviceStreamManager: DeviceStreamManager,
-    private val objectMapper: ObjectMapper
+    private val jwtManager: JWTManager,
+    private val deviceService: DeviceService
 ) : WebSocketHandler {
 
     private val logger = LoggerFactory.getLogger(OutboundStreamHandler::class.java)
 
     override fun handle(session: WebSocketSession): Mono<Void> {
-        // Extract deviceId from path config
         val deviceIdStr = session.handshakeInfo.uri.path.split("/").lastOrNull()
         if (deviceIdStr == null) {
             logger.error("Invalid WebSocket path: ${session.handshakeInfo.uri.path}")
@@ -49,125 +43,101 @@ class OutboundStreamHandler(
 
         logger.info("Outbound connection established for device $deviceId, session ${session.id}")
 
-        // TODO: Implement proper user authentication and device access validation
-        // val userId = extractUserFromSecurityContext()
-        // val hasAccess = userDeviceAccessRepository.findByUserIdAndDeviceId(userId, deviceId) != null
-        // if (!hasAccess) return session.close()
-
-        // Check if a pipeline exists
-        if (!deviceStreamManager.hasPipeline(deviceId)) {
-            logger.warn("No active pipeline for device $deviceId")
-            return session.close()
-        }
-
-        // Register outbound connection
-        deviceStreamManager.registerOutbound(deviceId, session.id)
-
-        val dataBufferFactory = session.bufferFactory()
-
-        // Create a message flow using Kotlin Flow
-        val messageFlow = flow {
-            // First, send buffered segments for catch-up
-            emitAll(sendBufferedSegments(deviceId, dataBufferFactory))
-            
-            // Then, subscribe to new segments
-            emitAll(subscribeToNewSegments(deviceId, dataBufferFactory))
-        }
-            .catch { error ->
-                logger.error("Error in outbound stream for device $deviceId, session ${session.id}", error)
+        return mono {
+            val token = extractToken(session)
+            if (token == null) {
+                logger.warn("Missing authorization token for outbound stream")
+                throw SecurityException("Missing authorization token")
             }
-            .onCompletion {
-                logger.info("Outbound connection closed for device $deviceId, session ${session.id}")
-                // Unregister outbound connection
-                try {
-                    deviceStreamManager.unregisterOutbound(deviceId, session.id)
-                } catch (e: Exception) {
-                    logger.error("Error unregistering outbound for device $deviceId", e)
+
+            val decodedJwt = try {
+                jwtManager.decode(token)
+            } catch (e: Exception) {
+                logger.warn("Invalid JWT token for outbound stream: ${e.message}")
+                throw SecurityException("Invalid authorization token")
+            }
+
+            val userId = try {
+                UUID.fromString(decodedJwt.subject)
+            } catch (_: Exception) {
+                logger.warn("Invalid user ID in JWT: ${decodedJwt.subject}")
+                throw SecurityException("Invalid authorization token")
+            }
+
+            val hasAccess = deviceService.hasAccess(deviceId, userId)
+            if (!hasAccess) {
+                logger.warn("User $userId does not have access to device $deviceId")
+                throw SecurityException("Access denied")
+            }
+
+            logger.info("User $userId authenticated for device $deviceId stream")
+            userId
+        }.flatMap { userId ->
+            if (!deviceStreamManager.hasPipeline(deviceId)) {
+                logger.warn("No active pipeline for device $deviceId")
+                return@flatMap session.close()
+            }
+
+            deviceStreamManager.registerOutbound(deviceId, session.id)
+
+            val dataBufferFactory = session.bufferFactory()
+
+            val messageFlow = createMessageFlow(deviceId, dataBufferFactory)
+                .onCompletion {
+                    logger.info("Outbound connection closed for device $deviceId, session ${session.id}")
+                    try {
+                        deviceStreamManager.unregisterOutbound(deviceId, session.id)
+                    } catch (e: Exception) {
+                        logger.error("Error unregistering outbound for device $deviceId", e)
+                    }
                 }
-            }
 
-        // Send messages to the client (convert Flow to Publisher for WebFlux)
-        return session.send(messageFlow.asPublisher())
-            .onErrorResume { error ->
-                logger.error("Error in outbound handler for device $deviceId, session ${session.id}", error)
-                session.close()
-            }
+            session.send(messageFlow.asPublisher())
+                .onErrorResume { error ->
+                    logger.error("Error in outbound handler for device $deviceId, session ${session.id}", error)
+                    session.close()
+                }
+        }.onErrorResume { error ->
+            logger.error("Authentication failed for outbound stream", error)
+            session.close()
+        }
     }
 
-    private fun sendBufferedSegments(
+    private fun extractToken(session: WebSocketSession): String? {
+        val authHeader = session.handshakeInfo.headers.getFirst(HttpHeaders.AUTHORIZATION)
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            return authHeader.substring(7)
+        }
+        return session.handshakeInfo.uri.query
+            ?.split("&")
+            ?.map { it.split("=") }
+            ?.find { it.size == 2 && it[0] == "token" }
+            ?.get(1)
+    }
+
+    private fun createMessageFlow(
         deviceId: UUID,
-        dataBufferFactory: DataBufferFactory
+        dataBufferFactory: org.springframework.core.io.buffer.DataBufferFactory
     ): Flow<WebSocketMessage> = flow {
-        // First, send the init segment (WebM header) - required for decoder
         val initSegment = deviceStreamManager.getInitSegment(deviceId)
         if (initSegment != null) {
             logger.info("Sending init segment ({} bytes) to new client for device {}", initSegment.size, deviceId)
-            val initMessage = WebSocketMessage(
-                WebSocketMessage.Type.BINARY,
-                dataBufferFactory.wrap(initSegment)
-            )
-            emit(initMessage)
+            emit(WebSocketMessage(WebSocketMessage.Type.BINARY, dataBufferFactory.wrap(initSegment)))
         } else {
             logger.warn("No init segment available for device {}", deviceId)
         }
 
-        // Then send buffered segments for catch-up
-        val bufferedSegments = deviceStreamManager.getBufferedSegments(deviceId)
-        
-        if (bufferedSegments.isEmpty()) {
-            logger.info("No buffered segments for device {}", deviceId)
+        val clusterFlow = deviceStreamManager.subscribeToClusterFlow(deviceId)
+        if (clusterFlow == null) {
+            logger.warn("No cluster flow available for device {}", deviceId)
             return@flow
         }
 
-        logger.info("Sending {} buffered segments to device {}", bufferedSegments.size, deviceId)
+        logger.info("Subscribed to cluster flow for device {}", deviceId)
 
-        bufferedSegments.forEach { segment ->
-            emitAll(createSegmentMessages(segment, dataBufferFactory))
-        }
-    }
-
-    @OptIn(ExperimentalCoroutinesApi::class)
-    private fun subscribeToNewSegments(
-        deviceId: UUID,
-        dataBufferFactory: DataBufferFactory
-    ): Flow<WebSocketMessage> {
-        val segmentFlow = deviceStreamManager.subscribeToSegments(deviceId)
-            ?: return emptyFlow()
-
-        logger.info("Subscribed to new segments for device $deviceId")
-
-        return segmentFlow
-            .flatMapConcat { segment ->
-                logger.debug("Sending segment {} to device {}", segment.index, deviceId)
-                createSegmentMessages(segment, dataBufferFactory)
-            }
-    }
-
-    private fun createSegmentMessages(
-        segment: SegmentData,
-        dataBufferFactory: DataBufferFactory
-    ): Flow<WebSocketMessage> = flow {
-        try {
-            // Create JSON metadata message
-            val metadata = segment.toMetadata()
-            val metadataJson = objectMapper.writeValueAsString(metadata)
-            val textMessage = WebSocketMessage(
-                WebSocketMessage.Type.TEXT,
-                dataBufferFactory.wrap(metadataJson.toByteArray())
-            )
-
-            // Create a binary WebM message
-            val binaryMessage = WebSocketMessage(
-                WebSocketMessage.Type.BINARY,
-                dataBufferFactory.wrap(segment.data)
-            )
-
-            // Send metadata first, then binary data
-            emit(textMessage)
-            emit(binaryMessage)
-        } catch (e: Exception) {
-            logger.error("Error creating segment messages", e)
+        clusterFlow.collect { clusterData ->
+            logger.debug("Sending cluster ({} bytes) to device {}", clusterData.size, deviceId)
+            emit(WebSocketMessage(WebSocketMessage.Type.BINARY, dataBufferFactory.wrap(clusterData)))
         }
     }
 }
-

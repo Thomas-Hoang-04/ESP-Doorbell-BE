@@ -1,29 +1,28 @@
 package com.thomas.espdoorbell.doorbell.streaming.config
 
 import org.springframework.boot.context.properties.ConfigurationProperties
-import org.springframework.context.annotation.Configuration
 
-@Configuration
 @ConfigurationProperties(prefix = "streaming")
 data class StreamingProperties(
     var ffmpeg: FfmpegSettings = FfmpegSettings(),
-    var buffer: BufferSettings = BufferSettings(),
-    var segment: SegmentSettings = SegmentSettings(),
-    var workingDirectory: String = "./streams"
+    var tcp: TcpSettings = TcpSettings(),
+    var sync: SyncSettings = SyncSettings(),
+    var websocketBaseUrl: String = "ws://localhost:8080"
 ) {
     data class FfmpegSettings(
         var path: String = "ffmpeg",
         var videoBitrate: String = "1M",
-        var audioBitrate: String = "128k"
+        var audioBitrate: String = "128k",
+        var clusterTimeMs: Int = 500
     )
 
-    data class BufferSettings(
-        var maxSize: Int = 50,
-        var maxReorderDelayMs: Long = 500,
-        var maxSequenceGap: Int = 10
+    data class TcpSettings(
+        var videoPort: Int = 0,
+        var audioPort: Int = 0
     )
 
-    data class SegmentSettings(
-        var bufferCount: Int = 5  // Ring buffer size for late-joiners
+    data class SyncSettings(
+        var maxSyncWaitMs: Long = 200,
+        var maxQueueSize: Int = 50
     )
 }
