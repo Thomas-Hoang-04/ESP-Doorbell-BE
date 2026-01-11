@@ -15,8 +15,7 @@ import java.util.*
 class UserDeviceAccess(
     @Column("id")
     @Id
-    @Suppress("unused")
-    private val id: UUID = UUID.randomUUID(),
+    val id: UUID? = null,
 
     @Column("user_id")
     val user: UUID,

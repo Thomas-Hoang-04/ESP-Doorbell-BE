@@ -33,9 +33,6 @@ class Users(
     @Column("is_email_verified")
     private val isEmailVerified: Boolean = false,
 
-    @Column("notification_enabled")
-    val notificationEnabled: Boolean = true,
-
     @Column("last_login")
     private val lastLogin: OffsetDateTime? = null,
 
@@ -71,12 +68,13 @@ class Users(
         email = email,
         isActive = isActive,
         isEmailVerified = isEmailVerified,
-        notificationEnabled = notificationEnabled,
         lastLoginAt = lastLogin,
-        deviceAccess = deviceAccess.map { it.toDto() }
+        deviceAccess = deviceAccess.map { it.toDto(username) }
     )
 
-    fun toPrincipal(
+    fun isEmailVerified(): Boolean = isEmailVerified
+
+    fun toDeviceAccessPrincipal(
         deviceAccess: List<UserDeviceAccess> = emptyList()
     ): UserPrincipal {
         val authorities = if (deviceAccess.isNotEmpty()) {

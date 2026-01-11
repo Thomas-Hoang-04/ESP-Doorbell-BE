@@ -19,6 +19,6 @@ class AuthServices(
         if (username == null) return@mono null
         val user: Users = userRepo.findByLogin(username) ?: return@mono null
         val deviceAccess = accessRepo.findAllByUser(user.id!!).toList()
-        user.toPrincipal(deviceAccess)
+        user.toDeviceAccessPrincipal(deviceAccess)
     }
 }
