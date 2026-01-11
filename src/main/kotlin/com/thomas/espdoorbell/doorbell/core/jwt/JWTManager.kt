@@ -12,9 +12,7 @@ import java.time.Instant
 import java.util.UUID
 
 @Component
-class JWTManager(
-    private val rsa: RSAKeyProperties
-) {
+class JWTManager {
     suspend fun issue(id: UUID, username: String, roles: List<String>): String
         = withContext(Dispatchers.Default) {
             JWT.create()
@@ -22,13 +20,13 @@ class JWTManager(
                 .withExpiresAt(Instant.now().plus(Duration.ofDays(1)))
                 .withClaim("username", username)
                 .withClaim("auth", roles)
-                .sign(Algorithm.RSA512(rsa.publicKey, rsa.privateKey))
+                .sign(Algorithm.RSA512(RSAKeyProperties.publicKey, RSAKeyProperties.privateKey))
         }
 
     suspend fun decode(token: String): DecodedJWT
         = withContext(Dispatchers.Default) {
             JWT.require(
-                Algorithm.RSA512(rsa.publicKey, rsa.privateKey)
+                Algorithm.RSA512(RSAKeyProperties.publicKey, RSAKeyProperties.privateKey)
             ).build().verify(token)
         }
 }
