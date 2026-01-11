@@ -1,63 +1,36 @@
 package com.thomas.espdoorbell.doorbell.core.exception
 
-/**
- * Base sealed class for all domain-specific exceptions.
- * Provides semantic error handling with proper HTTP status mapping.
- */
-sealed class DomainException(message: String): RuntimeException(message)
+sealed class DomainException(message: String) : RuntimeException(message) {
 
-// ============ Not Found Exceptions ============
+    open class EntityNotFound(
+        entityType: String,
+        idType: String,
+        idValue: String,
+    ) : DomainException("$entityType with $idType '$idValue' not found") {
+        class Device(type: String, value: String) : EntityNotFound("Device", type, value)
+        class User(type: String, value: String) : EntityNotFound("User", type, value)
+        class Event(type: String, value: String) : EntityNotFound("Event", type, value)
+    }
 
-/**
- * Base exception for entity not found errors.
- */
-open class EntityNotFoundException(
-    entityType: String,
-    entityId: Any
-): DomainException("$entityType with id '$entityId' not found")
+    open class EntityConflict(message: String) : DomainException(message) {
+        class DeviceAlreadyExists(identifier: String) :
+            EntityConflict("Device with identifier '$identifier' already exists")
+        class EmailAlreadyInUse(email: String) :
+            EntityConflict("Email '$email' is already in use")
+        class UsernameAlreadyInUse(username: String) :
+            EntityConflict("Username '$username' is already in use")
+        class UserAlreadyHasAccess(deviceId: Any, userId: Any) :
+            EntityConflict("User '$userId' already has access to device '$deviceId'")
+    }
 
-class DeviceNotFoundException(id: Any): EntityNotFoundException("Device", id)
-class UserNotFoundException(id: Any): EntityNotFoundException("User", id)
-class EventNotFoundException(id: Any): EntityNotFoundException("Event", id)
-class DeviceAccessNotFoundException(deviceId: Any, userId: Any): 
-    EntityNotFoundException("Device access for user '$userId' on device", deviceId)
+    open class AccessDenied(userId: String, deviceId: String)
+        : DomainException("User '$userId' does not have access to device '$deviceId'")
 
-// ============ Conflict Exceptions ============
-
-/**
- * Base exception for entity conflict errors (duplicates, constraint violations).
- */
-open class EntityConflictException(message: String): DomainException(message)
-
-class DeviceAlreadyExistsException(identifier: String):
-    EntityConflictException("Device with identifier '$identifier' already exists")
-
-class EmailAlreadyInUseException(email: String):
-    EntityConflictException("Email '$email' is already in use")
-
-class UsernameAlreadyInUseException(username: String):
-    EntityConflictException("Username '$username' is already in use")
-
-class UserAlreadyHasAccessException(deviceId: Any, userId: Any):
-    EntityConflictException("User '$userId' already has access to device '$deviceId'")
-
-// ============ Invalid Operation Exceptions ============
-
-/**
- * Exception for business rule violations or invalid state transitions.
- */
-open class InvalidOperationException(message: String): DomainException(message)
-
-class StreamAlreadyActiveException(deviceId: Any):
-    InvalidOperationException("Stream for device '$deviceId' is already active")
-
-class DeviceOfflineException(deviceId: Any):
-    InvalidOperationException("Device '$deviceId' is offline")
-
-// ============ Rate Limit Exceptions ============
-
-/**
- * Exception thrown when a client exceeds the rate limit.
- */
-class RateLimitExceededException(val retryAfterSeconds: Long):
-    DomainException("Rate limit exceeded. Please retry after $retryAfterSeconds seconds")
+    @Suppress("unused")
+    open class InvalidOperation(message: String) : DomainException(message) {
+        class StreamAlreadyActive(deviceId: Any) :
+            InvalidOperation("Stream for device '$deviceId' is already active")
+        class DeviceOffline(deviceId: Any) :
+            InvalidOperation("Device '$deviceId' is offline")
+    }
+}
