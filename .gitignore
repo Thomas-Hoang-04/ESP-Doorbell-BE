@@ -48,3 +48,8 @@ streams/
 
 ws*.txt
 mqtt*.txt
+
+http-test/
+
+**/certs/
+**/resources/firebase/
