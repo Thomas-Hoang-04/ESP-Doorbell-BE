@@ -12,8 +12,6 @@ data class UserDto(
     val isActive: Boolean,
     @field:JsonProperty("email_verified")
     val isEmailVerified: Boolean,
-    @field:JsonProperty("notification_enabled")
-    val notificationEnabled: Boolean,
     @field:JsonProperty("last_login")
     val lastLoginAt: OffsetDateTime?,
     @field:JsonProperty("device_access")
