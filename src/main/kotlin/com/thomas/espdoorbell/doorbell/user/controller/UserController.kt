@@ -1,15 +1,16 @@
 package com.thomas.espdoorbell.doorbell.user.controller
 
+import com.thomas.espdoorbell.doorbell.core.firebase.NotificationService
 import com.thomas.espdoorbell.doorbell.shared.principal.UserPrincipal
 import com.thomas.espdoorbell.doorbell.user.dto.UserDto
 import com.thomas.espdoorbell.doorbell.user.dto.UserDeviceAccessDto
+import com.thomas.espdoorbell.doorbell.user.request.FcmTokenRequest
 import com.thomas.espdoorbell.doorbell.user.request.PasswordUpdateRequest
 import com.thomas.espdoorbell.doorbell.user.service.UserService
 import jakarta.validation.Valid
 import kotlinx.coroutines.flow.toList
 import org.springframework.http.HttpStatus
 import org.springframework.security.access.AccessDeniedException
-import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.*
 import java.util.*
@@ -17,15 +18,9 @@ import java.util.*
 @RestController
 @RequestMapping("/api/users")
 class UserController(
-    private val userService: UserService
+    private val userService: UserService,
+    private val notificationService: NotificationService
 ) {
-
-    @GetMapping
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-    suspend fun listUsers(
-        @RequestParam(defaultValue = "false") includeAccessAssignments: Boolean
-    ): List<UserDto> =
-        userService.listUsers(includeAccessAssignments)
 
     @GetMapping("/me")
     suspend fun getCurrentUser(
@@ -55,16 +50,16 @@ class UserController(
         return userService.listDeviceAccessForUser(id).toList()
     }
 
-    @PatchMapping("/{id}/notification")
-    suspend fun updateNotification(
+    @PatchMapping("/{id}/username")
+    suspend fun updateUsername(
         @PathVariable id: UUID,
-        @RequestParam enabled: Boolean,
+        @RequestParam username: String,
         @AuthenticationPrincipal principal: UserPrincipal
     ): UserDto {
         if (principal.id != id) {
-            throw AccessDeniedException("Cannot update other users' settings")
+            throw AccessDeniedException("Cannot update other users' usernames")
         }
-        return userService.updateNotificationEnabled(id, enabled)
+        return userService.updateUsername(id, username)
     }
 
     @PatchMapping("/{id}/email")
@@ -92,7 +87,6 @@ class UserController(
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     suspend fun deleteUser(
         @PathVariable id: UUID,
@@ -102,6 +96,15 @@ class UserController(
             throw AccessDeniedException("Cannot delete your own account via admin endpoint")
         }
         userService.deleteUser(id)
+    }
+
+    @PutMapping("/me/fcm-token")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    suspend fun updateFcmToken(
+        @RequestBody request: FcmTokenRequest,
+        @AuthenticationPrincipal principal: UserPrincipal
+    ) {
+        notificationService.saveToken(principal.id, request.token)
     }
 
     private fun hasAdminRole(principal: UserPrincipal): Boolean =
