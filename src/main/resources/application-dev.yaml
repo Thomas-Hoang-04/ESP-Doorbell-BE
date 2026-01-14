@@ -1,0 +1,44 @@
+spring:
+  r2dbc:
+    url: ${SPRING_R2DBC_URL}
+    username: ${SPRING_R2DBC_USERNAME}
+    password: ${SPRING_R2DBC_PASSWORD}
+    pool:
+      initial-size: 5
+      max-size: 10
+      max-idle-time: 30m
+      validation-query: SELECT 1
+
+mqtt:
+  broker:
+    url: ${MQTT_BROKER_URL:ssl://localhost}
+    port: ${MQTT_BROKER_PORT:8883}
+    username: ${MQTT_BROKER_USERNAME}
+    password: ${MQTT_BROKER_PASSWORD}
+    ssl:
+      enabled: true
+      ca-path: certs/ca.pem
+      client-cert-path: certs/client.pem
+      client-key-path: certs/client.key
+  client:
+    id: esp-doorbell-server
+    auto-reconnect: true
+    clean-session: false
+    connection-timeout: 30
+    keep-alive-interval: 60
+  topics:
+    prefix: doorbell
+    stream-start: "doorbell/{deviceId}/stream/start"
+    stream-stop: "doorbell/{deviceId}/stream/stop"
+    heartbeat: "doorbell/+/heartbeat"
+    bell-event: "doorbell/+/event/bell"
+    settings: "doorbell/{deviceId}/settings"
+  qos:
+    default: 1
+    heartbeat: 0
+    bell-event: 1
+
+resend:
+  api-key: ${RESEND_API_KEY}
+  verify-email-template: "email-verification"
+  reset-password-template: "reset-password"
