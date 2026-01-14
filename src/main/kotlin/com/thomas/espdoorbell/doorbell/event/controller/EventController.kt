@@ -1,9 +1,12 @@
 package com.thomas.espdoorbell.doorbell.event.controller
 
+import com.thomas.espdoorbell.doorbell.device.service.DeviceService
 import com.thomas.espdoorbell.doorbell.event.dto.EventDto
 import com.thomas.espdoorbell.doorbell.event.service.EventService
-import kotlinx.coroutines.flow.toList
+import com.thomas.espdoorbell.doorbell.shared.principal.UserPrincipal
 import org.springframework.format.annotation.DateTimeFormat
+import org.springframework.security.access.AccessDeniedException
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.*
 import java.time.OffsetDateTime
 import java.util.*
@@ -11,29 +14,24 @@ import java.util.*
 @RestController
 @RequestMapping("/api/events")
 class EventController(
-    private val eventService: EventService
+    private val eventService: EventService,
+    private val deviceService: DeviceService
 ) {
-
-    // ========== READ OPERATIONS ==========
-    // Note: Event creation/update are internal-only via MQTT handlers
-
-    /**
-     * List all events.
-     */
     @GetMapping
     suspend fun listEvents(): List<EventDto> =
         eventService.listEvents()
 
-    /**
-     * List events for a specific device.
-     */
     @GetMapping("/device/{deviceId}")
-    suspend fun listEventsByDevice(@PathVariable deviceId: UUID): List<EventDto> =
-        eventService.listEventsByDevice(deviceId)
+    suspend fun listEventsByDevice(
+        @PathVariable deviceId: UUID,
+        @AuthenticationPrincipal principal: UserPrincipal
+    ): List<EventDto> {
+        if (!deviceService.hasAccess(deviceId, principal.id)) {
+            throw AccessDeniedException("No access to device")
+        }
+        return eventService.listEventsByDevice(deviceId)
+    }
 
-    /**
-     * List events within a date range.
-     */
     @GetMapping("/range")
     suspend fun listEventsByDateRange(
         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) start: OffsetDateTime,
@@ -41,33 +39,24 @@ class EventController(
     ): List<EventDto> =
         eventService.listEventsByDateRange(start, end)
 
-    /**
-     * List recent events (default: last 10).
-     */
     @GetMapping("/recent")
     suspend fun listRecentEvents(
         @RequestParam(defaultValue = "10") limit: Int
     ): List<EventDto> =
         eventService.listRecentEvents(limit)
 
-    /**
-     * List currently active streams.
-     */
-    @GetMapping("/streaming")
-    suspend fun listActiveStreams(): List<EventDto> =
-        eventService.listActiveStreams().toList()
-
-    /**
-     * Get a specific event by ID.
-     */
     @GetMapping("/{id}")
     suspend fun getEvent(@PathVariable id: UUID): EventDto =
         eventService.getEvent(id)
 
-    /**
-     * Get event count for a device.
-     */
     @GetMapping("/device/{deviceId}/count")
-    suspend fun getEventCountByDevice(@PathVariable deviceId: UUID): Long =
-        eventService.getEventCountByDevice(deviceId)
+    suspend fun getEventCountByDevice(
+        @PathVariable deviceId: UUID,
+        @AuthenticationPrincipal principal: UserPrincipal
+    ): Long {
+        if (!deviceService.hasAccess(deviceId, principal.id)) {
+            throw AccessDeniedException("No access to device")
+        }
+        return eventService.getEventCountByDevice(deviceId)
+    }
 }

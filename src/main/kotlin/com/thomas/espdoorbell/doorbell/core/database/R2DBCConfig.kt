@@ -3,8 +3,6 @@ package com.thomas.espdoorbell.doorbell.core.database
 import com.thomas.espdoorbell.doorbell.shared.principal.UserPrincipal
 import com.thomas.espdoorbell.doorbell.shared.types.DeviceAccess
 import com.thomas.espdoorbell.doorbell.shared.types.EventType
-import com.thomas.espdoorbell.doorbell.shared.types.ResponseType
-import com.thomas.espdoorbell.doorbell.shared.types.StreamStatus
 import com.thomas.espdoorbell.doorbell.shared.types.UserDeviceRole
 import io.r2dbc.pool.ConnectionPool
 import io.r2dbc.pool.ConnectionPoolConfiguration
@@ -70,9 +68,7 @@ class R2DBCConfig(
             .password(r2dbcProperties.password)
             .codecRegistrar(
                 EnumCodec.builder()
-                    .withEnum("stream_status_enum", StreamStatus::class.java)
                     .withEnum("event_type_enum", EventType::class.java)
-                    .withEnum("response_type_enum", ResponseType::class.java)
                     .withEnum("granted_status_enum", DeviceAccess::class.java)
                     .withEnum("user_role_enum", UserDeviceRole::class.java)
                     .build()
@@ -98,26 +94,16 @@ class R2DBCConfig(
 
     @Bean
     override fun getCustomConverters(): List<Any?> = listOf(
-        StreamStatusWriteConverter,
         EventTypeWriteConverter,
-        ResponseTypeWriteConverter,
         DeviceAccessWriteConverter,
         UserRoleWriteConverter
     )
-
-    // === Enum Converters ===
-    @WritingConverter
-    object StreamStatusWriteConverter : EnumWriteSupport<StreamStatus>()
 
     @WritingConverter
     object EventTypeWriteConverter : EnumWriteSupport<EventType>()
 
     @WritingConverter
-    object ResponseTypeWriteConverter : EnumWriteSupport<ResponseType>()
-
-    @WritingConverter
     object DeviceAccessWriteConverter: EnumWriteSupport<DeviceAccess>()
-
 
     @WritingConverter
     object UserRoleWriteConverter: EnumWriteSupport<UserDeviceRole>()
