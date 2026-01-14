@@ -2,6 +2,7 @@ package com.thomas.espdoorbell.doorbell.user.controller
 
 import com.thomas.espdoorbell.doorbell.core.firebase.NotificationService
 import com.thomas.espdoorbell.doorbell.shared.principal.UserPrincipal
+import com.thomas.espdoorbell.doorbell.user.dto.AvailabilityResponse
 import com.thomas.espdoorbell.doorbell.user.dto.UserDto
 import com.thomas.espdoorbell.doorbell.user.dto.UserDeviceAccessDto
 import com.thomas.espdoorbell.doorbell.user.request.FcmTokenRequest
@@ -55,11 +56,11 @@ class UserController(
         @PathVariable id: UUID,
         @RequestParam username: String,
         @AuthenticationPrincipal principal: UserPrincipal
-    ): UserDto {
+    ): AvailabilityResponse {
         if (principal.id != id) {
             throw AccessDeniedException("Cannot update other users' usernames")
         }
-        return userService.updateUsername(id, username)
+        return AvailabilityResponse(available = userService.updateUsername(id, username))
     }
 
     @PatchMapping("/{id}/email")
@@ -67,11 +68,11 @@ class UserController(
         @PathVariable id: UUID,
         @RequestParam email: String,
         @AuthenticationPrincipal principal: UserPrincipal
-    ): UserDto {
+    ): AvailabilityResponse {
         if (principal.id != id) {
             throw AccessDeniedException("Cannot update other users' email")
         }
-        return userService.updateEmail(id, email)
+        return AvailabilityResponse(available = userService.updateEmail(id, email))
     }
 
     @PatchMapping("/{id}/password")
