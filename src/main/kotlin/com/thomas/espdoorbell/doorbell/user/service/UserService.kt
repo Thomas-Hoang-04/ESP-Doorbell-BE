@@ -29,7 +29,7 @@ class UserService(
     private val r2dbcEntityTemplate: R2dbcEntityTemplate,
     private val passwordEncoder: PasswordEncoder
 ) {
-    // ========== READ ==========
+
     @Transactional(readOnly = true)
     suspend fun getUser(userId: UUID, includeAccessAssignments: Boolean = true): UserDto {
         val user = userRepository.findById(userId)
@@ -67,7 +67,7 @@ class UserService(
     suspend fun listDeviceAccessForUser(userId: UUID): Flow<UserDeviceAccessDto> =
         userDeviceAccessRepository.findAllByUser(userId).map { it.toDto() }
 
-    // ========== CREATE ==========
+
 
     @Transactional
     suspend fun registerUser(request: UserRegisterRequest): UserDto {
@@ -91,7 +91,7 @@ class UserService(
         return savedUser.toDto(emptyList())
     }
 
-    // ========== UPDATE ==========
+
 
     @Transactional
     suspend fun updateLoginTimestamp(userId: UUID) {
@@ -104,7 +104,7 @@ class UserService(
     }
 
     @Transactional
-    suspend fun updateUsername(userId: UUID, newUsername: String?): UserDto {
+    suspend fun updateUsername(userId: UUID, newUsername: String?): Boolean {
         userRepository.findById(userId)
             ?: throw DomainException.EntityNotFound.User("id", userId.toString())
 
@@ -114,13 +114,12 @@ class UserService(
 
         val query = Query.query(Criteria.where("id").`is`(userId))
         val update = Update.update("username", newUsername)
-        r2dbcEntityTemplate.update(query, update, Users::class.java).awaitSingleOrNull()
-
-        return getUser(userId)
+        val result = r2dbcEntityTemplate.update(query, update, Users::class.java).awaitSingleOrNull()
+        return (result ?: 0L) > 0
     }
 
     @Transactional
-    suspend fun updateEmail(userId: UUID, newEmail: String): UserDto {
+    suspend fun updateEmail(userId: UUID, newEmail: String): Boolean {
         userRepository.findById(userId)
             ?: throw DomainException.EntityNotFound.User("id", userId.toString())
 
@@ -130,9 +129,8 @@ class UserService(
 
         val query = Query.query(Criteria.where("id").`is`(userId))
         val update = Update.update("email", newEmail.lowercase())
-        r2dbcEntityTemplate.update(query, update, Users::class.java).awaitSingleOrNull()
-
-        return getUser(userId)
+        val result = r2dbcEntityTemplate.update(query, update, Users::class.java).awaitSingleOrNull()
+        return (result ?: 0L) > 0
     }
 
     @Transactional
@@ -159,7 +157,7 @@ class UserService(
         return r2dbcEntityTemplate.update(query, update, Users::class.java).awaitSingleOrNull() != null
     }
 
-    // ========== DELETE ==========
+
 
     @Transactional
     suspend fun deleteUser(userId: UUID) {

@@ -4,10 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Size
 
-/**
- * Request DTO for password update.
- * oldPassword is required when user is updating their own password (verification).
- */
+
 data class PasswordUpdateRequest(
     @field:NotBlank(message = "Current password is required")
     @field:JsonProperty("old_password")
