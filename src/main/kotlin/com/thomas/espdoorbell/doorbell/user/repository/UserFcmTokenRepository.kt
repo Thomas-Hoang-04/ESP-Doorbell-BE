@@ -19,5 +19,8 @@ interface UserFcmTokenRepository : CoroutineCrudRepository<UserFcmToken, UUID> {
     @Modifying
     @Query("DELETE FROM user_fcm_tokens WHERE user_id IN (SELECT id FROM users WHERE last_login < :threshold)")
     suspend fun deleteByInactiveUsersBefore(@Param("threshold") threshold: OffsetDateTime): Long
+
+    @Query("SELECT * FROM user_fcm_tokens WHERE user_id = ANY (:userIds)")
+    fun findByUserIdIn(@Param("userIds") userIds: List<UUID>): Flow<UserFcmToken>
 }
 

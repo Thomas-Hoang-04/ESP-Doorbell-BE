@@ -19,12 +19,7 @@ import org.eclipse.paho.mqttv5.common.MqttMessage
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
-/**
- * Service for subscribing to MQTT topics and processing incoming messages.
- * 
- * Registers handlers with MqttConnectionManager rather than setting its own callback
- * to avoid callback conflicts.
- */
+
 @Service
 class MqttSubscriberService(
     private val mqttClient: MqttClient,
