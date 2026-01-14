@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import java.util.*
 
 @Service
@@ -21,6 +22,7 @@ class NotificationService(
 ) {
     private val logger = LoggerFactory.getLogger(NotificationService::class.java)
 
+    @Transactional
     suspend fun saveToken(userId: UUID, token: String) {
         if (!userRepository.existsById(userId)) {
             logger.warn("Attempted to save FCM token for non-existent user $userId")
@@ -39,7 +41,6 @@ class NotificationService(
         logger.info("Saved FCM token for user $userId")
     }
 
-    // TODO: Add notification sending upon events like doorbell press
     suspend fun sendNotification(userId: UUID, title: String, body: String): Int {
         val tokens = userFcmTokenRepository.findByUserId(userId).toList()
         if (tokens.isEmpty()) {
@@ -57,6 +58,31 @@ class NotificationService(
                 logger.info("Removed invalid token for user $userId")
             }
         }
+        return successCount
+    }
+
+    suspend fun sendBroadcastNotification(userIds: List<UUID>, title: String, body: String): Int {
+        if (userIds.isEmpty()) return 0
+
+        val tokens = userFcmTokenRepository.findByUserIdIn(userIds).toList()
+        if (tokens.isEmpty()) {
+            logger.warn("No FCM tokens found for users $userIds")
+            return 0
+        }
+
+        val uniqueTokens = tokens.map { it.token }.toSet()
+
+        var successCount = 0
+        for (token in uniqueTokens) {
+            val success = sendToToken(token, title, body)
+            if (success) {
+                successCount++
+            } else {
+                userFcmTokenRepository.deleteByToken(token)
+                logger.info("Removed invalid token")
+            }
+        }
+        logger.info("Sent broadcast notification to ${successCount}/${uniqueTokens.size} tokens")
         return successCount
     }
 
