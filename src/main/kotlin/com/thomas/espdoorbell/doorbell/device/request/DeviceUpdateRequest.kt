@@ -2,10 +2,7 @@ package com.thomas.espdoorbell.doorbell.device.request
 
 import com.fasterxml.jackson.annotation.JsonProperty
 
-/**
- * Request DTO for updating device properties
- * Only non-null fields will be updated
- */
+
 data class DeviceUpdateRequest(
     @field:JsonProperty("display_name")
     val displayName: String? = null,
@@ -20,5 +17,8 @@ data class DeviceUpdateRequest(
     val firmwareVersion: String? = null,
 
     @field:JsonProperty("is_active")
-    val isActive: Boolean? = null
+    val isActive: Boolean? = null,
+
+    @field:JsonProperty("chime_index")
+    val chimeIndex: Int? = null
 )

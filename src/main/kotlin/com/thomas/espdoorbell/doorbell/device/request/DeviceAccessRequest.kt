@@ -5,9 +5,7 @@ import com.thomas.espdoorbell.doorbell.shared.types.UserDeviceRole
 import jakarta.validation.constraints.NotNull
 import java.util.*
 
-/**
- * Request to grant or update device access for a user.
- */
+
 data class DeviceAccessRequest(
     @field:NotNull(message = "User ID is required")
     @field:JsonProperty("user_id")

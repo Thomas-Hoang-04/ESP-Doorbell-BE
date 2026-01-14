@@ -44,6 +44,9 @@ class Devices(
     @Column("signal_strength")
     private val signalStrength: Int? = null,
 
+    @Column("chime_index")
+    private val chimeIndex: Int = 1,
+
     @Column("last_online")
     private val lastOnline: OffsetDateTime? = null,
 
@@ -69,6 +72,7 @@ class Devices(
         require(name.isNotBlank()) { "Device name must not be blank" }
         require(batteryLevel in 0..100) { "Battery level must be between 0 and 100" }
         require(signalStrength == null || signalStrength in -100..0) { "Signal strength must be between -100 and 0" }
+        require(chimeIndex in 1..4) { "Chime index must be between 1 and 4" }
     }
 
     fun toDto(): DeviceDto = DeviceDto(
@@ -81,6 +85,7 @@ class Devices(
         active = isActive,
         batteryLevelPercent = batteryLevel,
         signalStrengthDbm = signalStrength,
+        chimeIndex = chimeIndex,
         lastOnlineAt = lastOnline
     )
 }

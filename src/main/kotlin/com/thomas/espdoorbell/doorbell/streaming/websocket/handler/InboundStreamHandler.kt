@@ -4,6 +4,7 @@ import com.thomas.espdoorbell.doorbell.device.service.DeviceService
 import com.thomas.espdoorbell.doorbell.streaming.websocket.protocol.StreamPacket
 import com.thomas.espdoorbell.doorbell.streaming.websocket.protocol.parseStreamPacket
 import com.thomas.espdoorbell.doorbell.streaming.pipeline.DeviceStreamManager
+import io.micrometer.core.instrument.MeterRegistry
 import kotlinx.coroutines.reactor.mono
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
@@ -15,24 +16,16 @@ import reactor.core.scheduler.Schedulers
 import java.nio.ByteBuffer
 import java.util.*
 
-/**
- * WebSocket handler for inbound ESP32 device connections
- * Receives binary packets with video/audio data and feeds them to the transcoding pipeline
- */
-// TODO: Validate device authentication token from WebSocket headers
-// TODO: Rate limit connections per device (prevent DoS)
-// TODO: Add metrics for frames received per second
-// TODO: Handle WebSocket ping/pong for connection health
 @Component
 class InboundStreamHandler(
     private val deviceStreamManager: DeviceStreamManager,
-    private val deviceService: DeviceService
+    private val deviceService: DeviceService,
+    private val meterRegistry: MeterRegistry
 ) : WebSocketHandler {
 
     private val logger = LoggerFactory.getLogger(InboundStreamHandler::class.java)
 
     override fun handle(session: WebSocketSession): Mono<Void> {
-        // Extract deviceId from path config
         val deviceIdStr = session.handshakeInfo.uri.path.split("/").lastOrNull()
         if (deviceIdStr == null) {
             logger.error("Invalid WebSocket path: ${session.handshakeInfo.uri.path}")
@@ -71,7 +64,6 @@ class InboundStreamHandler(
                 throw e
             }
         }.flatMap {
-            // Handle incoming binary messages
             session.receive()
                 .doOnNext { message ->
                     if (message.type == WebSocketMessage.Type.BINARY) {
@@ -98,7 +90,12 @@ class InboundStreamHandler(
                                 packet.payload.size
                             )
 
-                            // Route to appropriate handler
+                            meterRegistry.counter(
+                                "stream.inbound.frames",
+                                "device_id", deviceId.toString(),
+                                "type", packet.type.name
+                            ).increment()
+
                             when (packet.type) {
                                 StreamPacket.PacketType.VIDEO -> {
                                     deviceStreamManager.feedVideoFrame(
