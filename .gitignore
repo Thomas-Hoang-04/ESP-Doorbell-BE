@@ -16,6 +16,7 @@ build/
 bin/
 !**/src/main/**/bin/
 !**/src/test/**/bin/
+*.env
 
 ### IntelliJ IDEA ###
 .idea
@@ -52,4 +53,4 @@ mqtt*.txt
 http-test/
 
 **/certs/
-**/resources/firebase/
+**/firebase/

@@ -3,13 +3,16 @@ spring:
     name: ESP-Doorbell
 
   config:
-    import: secrets.yaml
+    import: optional:application-${spring.profiles.active}.yaml
 
   jackson:
     time-zone: UTC
 
+server:
+  forward-headers-strategy: framework
+
 streaming:
-  websocket-base-url: ws://localhost:8080
+  websocket-base-url: ws://doorbell-thomas.site
   ffmpeg:
     path: ffmpeg
     video-bitrate: 1M
