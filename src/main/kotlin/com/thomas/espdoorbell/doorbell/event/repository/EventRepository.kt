@@ -1,7 +1,6 @@
 package com.thomas.espdoorbell.doorbell.event.repository
 
 import com.thomas.espdoorbell.doorbell.event.entity.Events
-import com.thomas.espdoorbell.doorbell.shared.types.StreamStatus
 import kotlinx.coroutines.flow.Flow
 import org.springframework.data.r2dbc.repository.Query
 import org.springframework.data.repository.kotlin.CoroutineCrudRepository
@@ -20,7 +19,4 @@ interface EventRepository : CoroutineCrudRepository<Events, UUID> {
     fun findRecent(@Param("limit") limit: Int): Flow<Events>
 
     suspend fun countByDeviceId(deviceId: UUID): Long
-    fun findByStreamStatus(status: StreamStatus): Flow<Events>
 }
-
-
