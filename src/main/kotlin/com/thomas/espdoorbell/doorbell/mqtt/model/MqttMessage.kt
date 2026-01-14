@@ -66,4 +66,14 @@ data class BellEventMessage(
     val event: String = "bell_pressed"
 ) : MqttMessage()
 
+data class SetChimeMessage(
+    val action: String = "set_chime",
 
+    @field:JsonProperty("device_id")
+    override val deviceId: String,
+
+    override val timestamp: Long = System.currentTimeMillis(),
+
+    @field:JsonProperty("chime_index")
+    val chimeIndex: Int
+) : MqttMessage()

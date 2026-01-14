@@ -21,6 +21,8 @@ data class DeviceDto(
     val batteryLevelPercent: Int,
     @field:JsonProperty("signal_strength")
     val signalStrengthDbm: Int?,
+    @field:JsonProperty("chime_index")
+    val chimeIndex: Int,
     @field:JsonProperty("last_online")
     val lastOnlineAt: OffsetDateTime?,
 )

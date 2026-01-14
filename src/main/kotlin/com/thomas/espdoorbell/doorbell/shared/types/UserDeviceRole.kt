@@ -9,7 +9,7 @@ enum class UserDeviceRole {
         MEMBER -> "Member"
     }
 
-    /** Map device role to Spring Security authority */
+
     fun toSpringAuthority(): String = when (this) {
         OWNER -> "ROLE_ADMIN"
         MEMBER -> "ROLE_USER"

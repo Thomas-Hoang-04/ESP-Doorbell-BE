@@ -7,6 +7,7 @@ import com.thomas.espdoorbell.doorbell.device.repository.DeviceRepository
 import com.thomas.espdoorbell.doorbell.device.request.DeviceAccessRequest
 import com.thomas.espdoorbell.doorbell.device.request.DeviceRegister
 import com.thomas.espdoorbell.doorbell.device.request.DeviceUpdateRequest
+import com.thomas.espdoorbell.doorbell.mqtt.service.MqttPublisherService
 import com.thomas.espdoorbell.doorbell.shared.types.UserDeviceRole
 import com.thomas.espdoorbell.doorbell.user.dto.UserDeviceAccessDto
 import com.thomas.espdoorbell.doorbell.user.entity.UserDeviceAccess
@@ -31,9 +32,10 @@ class DeviceService(
     private val deviceRepository: DeviceRepository,
     private val userDeviceAccessRepository: UserDeviceAccessRepository,
     private val r2dbcEntityTemplate: R2dbcEntityTemplate,
-    private val passwordEncoder: Argon2PasswordEncoder
+    private val passwordEncoder: Argon2PasswordEncoder,
+    private val mqttPublisherService: MqttPublisherService
 ) {
-    // ========== READ ==========
+
     
     fun listDevices(): Flow<DeviceDto> = deviceRepository.findAll().map { it.toDto() }
 
@@ -59,7 +61,7 @@ class DeviceService(
     suspend fun listDeviceAccess(deviceId: UUID): Flow<UserDeviceAccessDto> =
         userDeviceAccessRepository.findAllByDevice(deviceId).map { it.toDto() }
 
-    // ========== CREATE ==========
+
 
     @Transactional
     suspend fun createDevice(device: DeviceRegister, creatorId: UUID): DeviceDto {
@@ -81,39 +83,44 @@ class DeviceService(
         return savedDevice.toDto()
     }
 
-    // ========== UPDATE ==========
+
 
     @Transactional
-    suspend fun updateDevice(deviceId: UUID, request: DeviceUpdateRequest): DeviceDto {
-        // Verify device exists
-        deviceRepository.findById(deviceId)
+    suspend fun updateDevice(deviceId: UUID, request: DeviceUpdateRequest): Boolean {
+        val device = deviceRepository.findById(deviceId)
             ?: throw DomainException.EntityNotFound.Device("id", deviceId.toString())
 
         val query = Query.query(Criteria.where("id").`is`(deviceId))
         
-        // Build update dynamically from non-null request fields
         val updates = mutableMapOf<String, Any?>()
         request.displayName?.let { updates["name"] = it }
         request.locationDescription?.let { updates["location"] = it }
         request.modelName?.let { updates["model"] = it }
         request.firmwareVersion?.let { updates["firmware_version"] = it }
         request.isActive?.let { updates["is_active"] = it }
-
-        if (updates.isNotEmpty()) {
-            var update: Update? = null
-            for ((key, value) in updates) {
-                update = update?.set(key, value) ?: Update.update(key, value)
-            }
-            update?.let { r2dbcEntityTemplate.update(query, it, Devices::class.java) }
+        request.chimeIndex?.let { 
+            require(it in 1..4) { "Chime index must be between 1 and 4" }
+            updates["chime_index"] = it 
         }
 
-        return getDevice(deviceId)
-        // TODO: Rework to return status of update instead of fetching again
+        if (updates.isEmpty()) { return false }
+
+        var update: Update? = null
+        for ((key, value) in updates) {
+            update = update?.set(key, value) ?: Update.update(key, value)
+        }
+        
+        val result = update?.let { r2dbcEntityTemplate.update(query, it, Devices::class.java).awaitSingleOrNull() }
+        val updated = (result ?: 0L) > 0
+
+        if (updated && request.chimeIndex != null) {
+            mqttPublisherService.publishSetChime(deviceId, request.chimeIndex)
+        }
+
+        return updated
     }
 
-    /**
-     * Update device from heartbeat message (unified update)
-     */
+
     @Transactional
     suspend fun updateDeviceFromHeartbeat(
         deviceId: UUID,
@@ -136,10 +143,10 @@ class DeviceService(
             update = update?.set(key, value) ?: Update.update(key, value)
         }
         
-        update?.let { r2dbcEntityTemplate.update(query, it, Devices::class.java) }
+        update?.let { r2dbcEntityTemplate.update(query, it, Devices::class.java).awaitSingleOrNull() }
     }
 
-    // ========== DELETE ==========
+
 
     @Transactional
     suspend fun deleteDevice(deviceId: UUID) {
@@ -148,12 +155,9 @@ class DeviceService(
         deviceRepository.deleteById(deviceId)
     }
 
-    // ========== OWNERSHIP & ACCESS MANAGEMENT ==========
 
-    /**
-     * Verify that a user is the OWNER of a specific device.
-     * @throws AccessDeniedException if user is not the owner
-     */
+
+
     suspend fun verifyOwnership(deviceId: UUID, userId: UUID) {
         val access = userDeviceAccessRepository.findByDeviceAndUser(deviceId, userId)
             .firstOrNull() ?: throw AccessDeniedException("No access to device '$deviceId'")
@@ -163,9 +167,7 @@ class DeviceService(
         }
     }
 
-    /**
-     * Check if a user has any access (OWNER or MEMBER) to a device.
-     */
+
     suspend fun hasAccess(deviceId: UUID, userId: UUID): Boolean =
         userDeviceAccessRepository.findByDeviceAndUser(deviceId, userId)
             .firstOrNull() != null
@@ -175,12 +177,7 @@ class DeviceService(
         return passwordEncoder.matches(rawDeviceKey, device.deviceKey)
     }
 
-    /**
-     * Grant access to a device for a user.
-     * @param deviceId Device to grant access to
-     * @param request Contains userId and role to grant
-     * @param grantedBy UUID of the user granting access (must be owner)
-     */
+
     @Transactional
     suspend fun grantDeviceAccess(
         deviceId: UUID,
@@ -211,26 +208,23 @@ class DeviceService(
         return userDeviceAccessRepository.save(newAccess).toDto()
     }
 
-    /**
-     * Update a user's role for a device.
-     */
+
     @Transactional
     suspend fun updateDeviceAccess(
         deviceId: UUID,
         targetUserId: UUID,
         newRole: UserDeviceRole,
         updatedBy: UUID
-    ): UserDeviceAccessDto {
+    ): Boolean {
         // Verify device exists
         deviceRepository.findById(deviceId)
             ?: throw DomainException.EntityNotFound.Device("id", deviceId.toString())
 
         verifyOwnership(deviceId, updatedBy)
 
-        // Find existing access
-        val existingAccess = userDeviceAccessRepository
-            .findByDeviceAndUser(deviceId, targetUserId)
-            .firstOrNull() ?: throw DomainException.AccessDenied(targetUserId.toString(), deviceId.toString())
+        if (userDeviceAccessRepository.findByDeviceAndUser(deviceId, targetUserId).firstOrNull() == null) {
+            throw DomainException.AccessDenied(targetUserId.toString(), deviceId.toString())
+        }
 
         // Update via template (since entity is immutable)
         val query = Query.query(
@@ -238,15 +232,11 @@ class DeviceService(
                 .and("user_id").`is`(targetUserId)
         )
         val update = Update.update("role", newRole.name)
-        r2dbcEntityTemplate.update(query, update, UserDeviceAccess::class.java).awaitSingleOrNull()
-
-        // Return updated DTO
-        return existingAccess.toDto()
+        val result = r2dbcEntityTemplate.update(query, update, UserDeviceAccess::class.java).awaitSingleOrNull()
+        return (result ?: 0L) > 0
     }
 
-    /**
-     * Revoke a user's access to a device.
-     */
+
     @Transactional
     suspend fun revokeDeviceAccess(
         deviceId: UUID,

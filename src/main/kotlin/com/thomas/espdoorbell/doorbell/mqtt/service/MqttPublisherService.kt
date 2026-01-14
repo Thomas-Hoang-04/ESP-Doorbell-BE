@@ -2,6 +2,7 @@ package com.thomas.espdoorbell.doorbell.mqtt.service
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.thomas.espdoorbell.doorbell.mqtt.config.MqttProperties
+import com.thomas.espdoorbell.doorbell.mqtt.model.SetChimeMessage
 import com.thomas.espdoorbell.doorbell.mqtt.model.StreamStartMessage
 import com.thomas.espdoorbell.doorbell.mqtt.model.StreamStopMessage
 import kotlinx.coroutines.Dispatchers
@@ -12,9 +13,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.util.UUID
 
-/**
- * Service for publishing MQTT messages to ESP32 devices
- */
+
 @Service
 class MqttPublisherService(
     private val mqttClient: MqttClient,
@@ -43,6 +42,20 @@ class MqttPublisherService(
 
         val topic = mqttProperties.formatTopic(
             mqttProperties.topics.streamStop,
+            deviceId.toString()
+        )
+
+        return publishMessage(topic, message, mqttProperties.qos.default, retained = false)
+    }
+
+    suspend fun publishSetChime(deviceId: UUID, chimeIndex: Int): Boolean {
+        val message = SetChimeMessage(
+            deviceId = deviceId.toString(),
+            chimeIndex = chimeIndex
+        )
+
+        val topic = mqttProperties.formatTopic(
+            mqttProperties.topics.settings,
             deviceId.toString()
         )
 

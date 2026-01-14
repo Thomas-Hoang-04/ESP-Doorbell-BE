@@ -42,6 +42,7 @@ data class MqttProperties(
         val streamStop: String,
         val heartbeat: String,
         val bellEvent: String,
+        val settings: String,
     )
 
     data class QosSettings(

@@ -7,6 +7,7 @@ import com.thomas.espdoorbell.doorbell.device.request.DeviceUpdateRequest
 import com.thomas.espdoorbell.doorbell.device.service.DeviceService
 import com.thomas.espdoorbell.doorbell.shared.principal.UserPrincipal
 import com.thomas.espdoorbell.doorbell.shared.types.UserDeviceRole
+import com.thomas.espdoorbell.doorbell.user.dto.AvailabilityResponse
 import com.thomas.espdoorbell.doorbell.user.dto.UserDeviceAccessDto
 import jakarta.validation.Valid
 import kotlinx.coroutines.flow.toList
@@ -22,7 +23,7 @@ class DeviceController(
     private val deviceService: DeviceService
 ) {
 
-    // ========== READ OPERATIONS ==========
+
 
     @GetMapping
     suspend fun listDevices(): List<DeviceDto> =
@@ -61,7 +62,7 @@ class DeviceController(
         return deviceService.listDeviceAccess(id).toList()
     }
 
-    // ========== CREATE OPERATIONS ==========
+
 
     @PostMapping
     suspend fun createDevice(
@@ -72,19 +73,19 @@ class DeviceController(
         return ResponseEntity.status(HttpStatus.CREATED).body(device)
     }
 
-    // ========== UPDATE OPERATIONS ==========
+
 
     @PatchMapping("/{id}")
     suspend fun updateDevice(
         @PathVariable id: UUID,
         @Valid @RequestBody request: DeviceUpdateRequest,
         @AuthenticationPrincipal principal: UserPrincipal
-    ): DeviceDto {
+    ): AvailabilityResponse {
         deviceService.verifyOwnership(id, principal.id)
-        return deviceService.updateDevice(id, request)
+        return AvailabilityResponse(available = deviceService.updateDevice(id, request))
     }
 
-    // ========== DELETE OPERATIONS ==========
+
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -96,7 +97,7 @@ class DeviceController(
         deviceService.deleteDevice(id)
     }
 
-    // ========== ACCESS MANAGEMENT ==========
+
 
     @PostMapping("/{id}/access")
     suspend fun grantDeviceAccess(
@@ -114,8 +115,8 @@ class DeviceController(
         @PathVariable userId: UUID,
         @RequestParam role: UserDeviceRole,
         @AuthenticationPrincipal principal: UserPrincipal
-    ): UserDeviceAccessDto =
-        deviceService.updateDeviceAccess(id, userId, role, principal.id)
+    ): AvailabilityResponse =
+        AvailabilityResponse(available = deviceService.updateDeviceAccess(id, userId, role, principal.id))
 
     @DeleteMapping("/{id}/access/{userId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
