@@ -87,7 +87,7 @@ class DeviceService(
 
     @Transactional
     suspend fun updateDevice(deviceId: UUID, request: DeviceUpdateRequest): Boolean {
-        val device = deviceRepository.findById(deviceId)
+        deviceRepository.findById(deviceId)
             ?: throw DomainException.EntityNotFound.Device("id", deviceId.toString())
 
         val query = Query.query(Criteria.where("id").`is`(deviceId))
@@ -102,6 +102,10 @@ class DeviceService(
             require(it in 1..4) { "Chime index must be between 1 and 4" }
             updates["chime_index"] = it 
         }
+        request.volumeLevel?.let {
+            require(it in 0..100) { "Volume level must be between 0 and 100" }
+            updates["volume_level"] = it
+        }
 
         if (updates.isEmpty()) { return false }
 
@@ -115,6 +119,9 @@ class DeviceService(
 
         if (updated && request.chimeIndex != null) {
             mqttPublisherService.publishSetChime(deviceId, request.chimeIndex)
+        }
+        if (updated && request.volumeLevel != null) {
+            mqttPublisherService.publishSetVolume(deviceId, request.volumeLevel)
         }
 
         return updated

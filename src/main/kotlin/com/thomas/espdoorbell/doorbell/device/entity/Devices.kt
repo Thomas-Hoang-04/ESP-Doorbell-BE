@@ -47,6 +47,9 @@ class Devices(
     @Column("chime_index")
     private val chimeIndex: Int = 1,
 
+    @Column("volume_level")
+    private val volumeLevel: Int = 10,
+
     @Column("last_online")
     private val lastOnline: OffsetDateTime? = null,
 
@@ -73,6 +76,7 @@ class Devices(
         require(batteryLevel in 0..100) { "Battery level must be between 0 and 100" }
         require(signalStrength == null || signalStrength in -100..0) { "Signal strength must be between -100 and 0" }
         require(chimeIndex in 1..4) { "Chime index must be between 1 and 4" }
+        require(volumeLevel in 0..100) { "Volume level must be between 0 and 100" }
     }
 
     fun toDto(): DeviceDto = DeviceDto(
@@ -86,6 +90,7 @@ class Devices(
         batteryLevelPercent = batteryLevel,
         signalStrengthDbm = signalStrength,
         chimeIndex = chimeIndex,
+        volumeLevel = volumeLevel,
         lastOnlineAt = lastOnline
     )
 }

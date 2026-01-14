@@ -20,5 +20,8 @@ data class DeviceUpdateRequest(
     val isActive: Boolean? = null,
 
     @field:JsonProperty("chime_index")
-    val chimeIndex: Int? = null
+    val chimeIndex: Int? = null,
+
+    @field:JsonProperty("volume_level")
+    val volumeLevel: Int? = null
 )

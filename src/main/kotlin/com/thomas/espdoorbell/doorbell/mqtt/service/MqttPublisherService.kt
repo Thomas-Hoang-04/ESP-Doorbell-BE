@@ -3,6 +3,7 @@ package com.thomas.espdoorbell.doorbell.mqtt.service
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.thomas.espdoorbell.doorbell.mqtt.config.MqttProperties
 import com.thomas.espdoorbell.doorbell.mqtt.model.SetChimeMessage
+import com.thomas.espdoorbell.doorbell.mqtt.model.SetVolumeMessage
 import com.thomas.espdoorbell.doorbell.mqtt.model.StreamStartMessage
 import com.thomas.espdoorbell.doorbell.mqtt.model.StreamStopMessage
 import kotlinx.coroutines.Dispatchers
@@ -52,6 +53,20 @@ class MqttPublisherService(
         val message = SetChimeMessage(
             deviceId = deviceId.toString(),
             chimeIndex = chimeIndex
+        )
+
+        val topic = mqttProperties.formatTopic(
+            mqttProperties.topics.settings,
+            deviceId.toString()
+        )
+
+        return publishMessage(topic, message, mqttProperties.qos.default, retained = false)
+    }
+
+    suspend fun publishSetVolume(deviceId: UUID, volumeLevel: Int): Boolean {
+        val message = SetVolumeMessage(
+            deviceId = deviceId.toString(),
+            volumeLevel = volumeLevel
         )
 
         val topic = mqttProperties.formatTopic(

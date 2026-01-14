@@ -77,3 +77,15 @@ data class SetChimeMessage(
     @field:JsonProperty("chime_index")
     val chimeIndex: Int
 ) : MqttMessage()
+
+data class SetVolumeMessage(
+    val action: String = "set_volume",
+
+    @field:JsonProperty("device_id")
+    override val deviceId: String,
+
+    override val timestamp: Long = System.currentTimeMillis(),
+
+    @field:JsonProperty("volume_level")
+    val volumeLevel: Int
+) : MqttMessage()

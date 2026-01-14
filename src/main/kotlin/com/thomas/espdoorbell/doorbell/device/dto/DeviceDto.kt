@@ -23,6 +23,8 @@ data class DeviceDto(
     val signalStrengthDbm: Int?,
     @field:JsonProperty("chime_index")
     val chimeIndex: Int,
+    @field:JsonProperty("volume_level")
+    val volumeLevel: Int,
     @field:JsonProperty("last_online")
     val lastOnlineAt: OffsetDateTime?,
 )
