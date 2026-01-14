@@ -7,7 +7,10 @@ import org.eclipse.paho.mqttv5.common.MqttException
 import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.core.env.Environment
 import org.springframework.core.io.ClassPathResource
+import java.io.File
+import java.io.InputStream
 import java.security.KeyStore
 import java.security.cert.CertificateFactory
 import javax.net.ssl.SSLContext
@@ -16,7 +19,8 @@ import javax.net.ssl.TrustManagerFactory
 
 @Configuration
 class MqttConfig(
-    private val mqttProperties: MqttProperties
+    private val mqttProperties: MqttProperties,
+    private val environment: Environment
 ) {
     private val logger = LoggerFactory.getLogger(MqttConfig::class.java)
 
@@ -69,9 +73,16 @@ class MqttConfig(
     }
 
     private fun createSslSocketFactory(ssl: MqttProperties.SslSettings): SSLSocketFactory {
-        val caResource = ClassPathResource(ssl.caPath ?: "certs/ca.pem")
+        val caPath = ssl.caPath ?: "certs/ca.pem"
+        val caInputStream: InputStream = if (environment.activeProfiles.contains("dev")) {
+            ClassPathResource(caPath).inputStream
+        } else {
+            val externalPath = System.getenv("MQTT_CA_PATH") ?: "/app/certs/ca.pem"
+            File(externalPath).inputStream()
+        }
+
         val certFactory = CertificateFactory.getInstance("X.509")
-        val caCert = caResource.inputStream.use { certFactory.generateCertificate(it) }
+        val caCert = caInputStream.use { certFactory.generateCertificate(it) }
 
         val trustStore = KeyStore.getInstance(KeyStore.getDefaultType()).apply {
             load(null, null)
@@ -85,7 +96,9 @@ class MqttConfig(
         val sslContext = SSLContext.getInstance("TLS")
         sslContext.init(null, trustManagerFactory.trustManagers, null)
 
-        logger.info("SSL socket factory created with CA from: ${ssl.caPath ?: "certs/ca.pem"}")
+        val source = if (environment.activeProfiles.contains("dev")) "classpath:$caPath" else System.getenv("MQTT_CA_PATH") ?: "/app/certs/ca.pem"
+        logger.info("SSL socket factory created with CA from: $source")
         return sslContext.socketFactory
     }
 }
+
