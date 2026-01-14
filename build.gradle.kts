@@ -1,5 +1,5 @@
 plugins {
-    val kotlinVer = "2.2.20"
+    val kotlinVer = "2.2.21"
     kotlin("jvm") version kotlinVer
     kotlin("plugin.spring") version kotlinVer
     kotlin("plugin.jpa") version kotlinVer
@@ -51,6 +51,7 @@ dependencies {
     testImplementation("org.springframework.security:spring-security-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     implementation("com.google.firebase:firebase-admin:9.7.0")
+    implementation("me.paulschwarz:spring-dotenv:5.1.0")
 }
 
 kotlin {
