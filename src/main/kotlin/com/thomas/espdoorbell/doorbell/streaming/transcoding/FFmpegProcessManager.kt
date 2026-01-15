@@ -61,10 +61,14 @@ class FFmpegProcessManager(
 
             "-f", "mjpeg",
             "-use_wallclock_as_timestamps", "1",
+            "-analyzeduration", "0",
+            "-probesize", "32",
             "-i", "tcp://127.0.0.1:$videoPort",
 
             "-f", "aac",
             "-use_wallclock_as_timestamps", "1",
+            "-analyzeduration", "0",
+            "-probesize", "32",
             "-i", "tcp://127.0.0.1:$audioPort",
 
             "-map", "0:v:0",
