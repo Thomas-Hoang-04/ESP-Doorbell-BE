@@ -12,7 +12,7 @@ server:
   forward-headers-strategy: framework
 
 streaming:
-  websocket-base-url: ws://doorbell-thomas.site
+  websocket-base-url: wss://doorbell-thomas.site
   ffmpeg:
     path: ffmpeg
     video-bitrate: 1M
