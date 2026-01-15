@@ -1,9 +1,9 @@
 package com.thomas.espdoorbell.doorbell.streaming.websocket.handler
 
 import com.thomas.espdoorbell.doorbell.device.service.DeviceService
+import com.thomas.espdoorbell.doorbell.streaming.pipeline.DeviceStreamManager
 import com.thomas.espdoorbell.doorbell.streaming.websocket.protocol.StreamPacket
 import com.thomas.espdoorbell.doorbell.streaming.websocket.protocol.parseStreamPacket
-import com.thomas.espdoorbell.doorbell.streaming.pipeline.DeviceStreamManager
 import io.micrometer.core.instrument.MeterRegistry
 import kotlinx.coroutines.reactor.mono
 import org.slf4j.LoggerFactory
@@ -26,17 +26,16 @@ class InboundStreamHandler(
     private val logger = LoggerFactory.getLogger(InboundStreamHandler::class.java)
 
     override fun handle(session: WebSocketSession): Mono<Void> {
-        val deviceIdStr = session.handshakeInfo.uri.path.split("/").lastOrNull()
-        if (deviceIdStr == null) {
+        val deviceId = session.handshakeInfo.uri.path.split("/").lastOrNull()
+        if (deviceId == null) {
             logger.error("Invalid WebSocket path: ${session.handshakeInfo.uri.path}")
             return session.close()
         }
 
-        val deviceId: UUID
-        try {
-            deviceId = UUID.fromString(deviceIdStr)
-        } catch (_: IllegalArgumentException) {
-            logger.error("Invalid device ID format: $deviceIdStr")
+        val deviceIdUUID: UUID = try {
+            UUID.fromString(deviceId)
+        } catch (e: IllegalArgumentException) {
+            logger.error("Invalid device ID format: $deviceId", e)
             return session.close()
         }
 
@@ -55,8 +54,7 @@ class InboundStreamHandler(
                     logger.warn("Invalid device key for device $deviceId")
                     throw SecurityException("Invalid device key")
                 }
-
-                deviceStreamManager.registerInbound(deviceId, session.id)
+                deviceStreamManager.registerInbound(deviceIdUUID, session.id)
                 
                 logger.info("Device $deviceId authenticated and registered")
             } catch (e: Exception) {
@@ -92,21 +90,21 @@ class InboundStreamHandler(
 
                             meterRegistry.counter(
                                 "stream.inbound.frames",
-                                "device_id", deviceId.toString(),
+                                "device_id", deviceId,
                                 "type", packet.type.name
                             ).increment()
 
                             when (packet.type) {
                                 StreamPacket.PacketType.VIDEO -> {
                                     deviceStreamManager.feedVideoFrame(
-                                        deviceId = deviceId,
+                                        deviceId = deviceIdUUID,
                                         jpegData = packet.payload,
                                         pts = ptsMicros
                                     )
                                 }
                                 StreamPacket.PacketType.AUDIO -> {
                                     deviceStreamManager.feedAudioFrame(
-                                        deviceId = deviceId,
+                                        deviceId = deviceIdUUID,
                                         aacData = packet.payload,
                                         pts = ptsMicros
                                     )
@@ -126,7 +124,7 @@ class InboundStreamHandler(
                     // Unregister inbound connection
                     mono {
                         try {
-                            deviceStreamManager.unregisterInbound(deviceId, session.id)
+                            deviceStreamManager.unregisterInbound(deviceIdUUID, session.id)
                         } catch (e: Exception) {
                             logger.error("Error unregistering inbound for device $deviceId", e)
                         }

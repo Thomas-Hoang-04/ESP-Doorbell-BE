@@ -179,8 +179,8 @@ class DeviceService(
         userDeviceAccessRepository.findByDeviceAndUser(deviceId, userId)
             .firstOrNull() != null
 
-    suspend fun verifyDeviceKey(deviceId: UUID, rawDeviceKey: String): Boolean {
-        val device = deviceRepository.findById(deviceId) ?: return false
+    suspend fun verifyDeviceKey(deviceId: String, rawDeviceKey: String): Boolean {
+        val device = deviceRepository.findByDeviceId(deviceId) ?: return false
         return passwordEncoder.matches(rawDeviceKey, device.deviceKey)
     }
 
