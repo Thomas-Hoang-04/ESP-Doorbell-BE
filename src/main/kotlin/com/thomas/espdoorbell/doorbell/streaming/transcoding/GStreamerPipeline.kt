@@ -94,9 +94,8 @@ class GStreamerPipeline(
                 set("max-bytes", 0L)
             }
 
-            // Configure audio appsrc
             audioAppSrc?.apply {
-                caps = Caps.fromString("audio/mpeg,mpegversion=4,stream-format=raw,channels=1,rate=16000")
+                caps = Caps.fromString("audio/mpeg,mpegversion=4,stream-format=raw,channels=2,rate=48000")
                 set("format", Format.TIME)
                 set("is-live", true)
                 set("block", false)
