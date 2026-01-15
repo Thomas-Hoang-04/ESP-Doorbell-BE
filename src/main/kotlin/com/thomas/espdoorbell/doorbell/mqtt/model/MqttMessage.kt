@@ -89,3 +89,12 @@ data class SetVolumeMessage(
     @field:JsonProperty("volume_level")
     val volumeLevel: Int
 ) : MqttMessage()
+
+data class FactoryResetMessage(
+    val action: String = "factory_reset",
+
+    @field:JsonProperty("device_id")
+    override val deviceId: String,
+
+    override val timestamp: Long = System.currentTimeMillis()
+) : MqttMessage()

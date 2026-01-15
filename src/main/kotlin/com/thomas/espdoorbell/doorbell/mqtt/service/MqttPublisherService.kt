@@ -2,6 +2,7 @@ package com.thomas.espdoorbell.doorbell.mqtt.service
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.thomas.espdoorbell.doorbell.mqtt.config.MqttProperties
+import com.thomas.espdoorbell.doorbell.mqtt.model.FactoryResetMessage
 import com.thomas.espdoorbell.doorbell.mqtt.model.SetChimeMessage
 import com.thomas.espdoorbell.doorbell.mqtt.model.SetVolumeMessage
 import com.thomas.espdoorbell.doorbell.mqtt.model.StreamStartMessage
@@ -68,6 +69,17 @@ class MqttPublisherService(
             deviceId = deviceIdentifier,
             volumeLevel = volumeLevel
         )
+
+        val topic = mqttProperties.formatTopic(
+            mqttProperties.topics.settings,
+            deviceIdentifier
+        )
+
+        return publishMessage(topic, message, mqttProperties.qos.default, retained = false)
+    }
+
+    suspend fun publishFactoryReset(deviceIdentifier: String): Boolean {
+        val message = FactoryResetMessage(deviceId = deviceIdentifier)
 
         val topic = mqttProperties.formatTopic(
             mqttProperties.topics.settings,

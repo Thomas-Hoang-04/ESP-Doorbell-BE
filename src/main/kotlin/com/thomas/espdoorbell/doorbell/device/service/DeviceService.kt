@@ -162,8 +162,9 @@ class DeviceService(
 
     @Transactional
     suspend fun deleteDevice(deviceId: UUID) {
-        deviceRepository.findById(deviceId)
+        val device = deviceRepository.findById(deviceId)
             ?: throw DomainException.EntityNotFound.Device("id", deviceId.toString())
+        mqttPublisherService.publishFactoryReset(device.deviceId)
         deviceRepository.deleteById(deviceId)
     }
 
