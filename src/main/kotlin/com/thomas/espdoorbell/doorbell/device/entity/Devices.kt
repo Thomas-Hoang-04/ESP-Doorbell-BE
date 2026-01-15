@@ -18,40 +18,40 @@ class Devices(
     val id: UUID? = null,
 
     @Column("device_id")
-    private val deviceId: String,
+    val deviceId: String,
 
     @Column("device_key")
     val deviceKey: String,
 
     @Column("name")
-    private val name: String,
+    val name: String,
 
     @Column("location")
-    private val location: String? = null,
+    val location: String? = null,
 
     @Column("model")
-    private val model: String? = null,
+    val model: String? = null,
 
     @Column("firmware_version")
-    private val fwVersion: String? = null,
+    val fwVersion: String? = null,
 
     @Column("is_active")
-    private val isActive: Boolean = true,
+    val isActive: Boolean = true,
 
     @Column("battery_level")
-    private val batteryLevel: Int = 100,
+    val batteryLevel: Int = 100,
 
     @Column("signal_strength")
-    private val signalStrength: Int? = null,
+    val signalStrength: Int? = null,
 
     @Column("chime_index")
-    private val chimeIndex: Int = 1,
+    val chimeIndex: Int = 1,
 
     @Column("volume_level")
-    private val volumeLevel: Int = 10,
+    val volumeLevel: Int = 10,
 
     @Column("last_online")
-    private val lastOnline: OffsetDateTime? = null,
+    val lastOnline: OffsetDateTime? = null,
 
     @LastModifiedDate
     @Column("updated_at")
