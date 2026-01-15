@@ -15,6 +15,7 @@ import org.springframework.web.reactive.socket.WebSocketHandler
 import org.springframework.web.reactive.socket.WebSocketMessage
 import org.springframework.web.reactive.socket.WebSocketSession
 import reactor.core.publisher.Mono
+import org.springframework.core.io.buffer.DataBufferFactory
 import java.util.UUID
 
 @Component
@@ -72,7 +73,7 @@ class OutboundStreamHandler(
 
             logger.info("User $userId authenticated for device $deviceId stream")
             userId
-        }.flatMap { userId ->
+        }.flatMap { _ ->
             mono {
                 if (!deviceStreamManager.hasPipeline(deviceId)) {
                     logger.info("Waiting for pipeline for device $deviceId...")
@@ -125,7 +126,7 @@ class OutboundStreamHandler(
 
     private fun createMessageFlow(
         deviceId: UUID,
-        dataBufferFactory: org.springframework.core.io.buffer.DataBufferFactory
+        dataBufferFactory: DataBufferFactory
     ): Flow<WebSocketMessage> = flow {
         val initSegment = deviceStreamManager.getInitSegment(deviceId)
         if (initSegment != null) {

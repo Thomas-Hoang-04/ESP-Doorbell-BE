@@ -7,14 +7,15 @@ import com.thomas.espdoorbell.doorbell.streaming.websocket.protocol.parseStreamP
 import io.micrometer.core.instrument.MeterRegistry
 import kotlinx.coroutines.reactor.mono
 import org.slf4j.LoggerFactory
+import org.springframework.core.io.buffer.DataBufferUtils
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.socket.WebSocketHandler
 import org.springframework.web.reactive.socket.WebSocketMessage
 import org.springframework.web.reactive.socket.WebSocketSession
 import reactor.core.publisher.Mono
 import reactor.core.scheduler.Schedulers
+import reactor.netty.channel.AbortedException
 import java.nio.ByteBuffer
-import java.util.*
 
 @Component
 class InboundStreamHandler(
@@ -63,21 +64,20 @@ class InboundStreamHandler(
             session.receive()
                 .doOnNext { message ->
                     if (message.type == WebSocketMessage.Type.BINARY) {
-                        val payloadSize = message.payload.readableByteCount()
+                        val payload = message.payload
+                        val payloadSize = payload.readableByteCount()
                         if (payloadSize == 0) {
                             return@doOnNext
                         }
                         
                         try {
-                            val packet = message.payload.let {
-                                val buffer = ByteBuffer.allocate(it.readableByteCount())
-                                it.toByteBuffer(buffer)
-                                buffer.flip()
-                                buffer.parseStreamPacket()
-                            }
+                            val byteArray = ByteArray(payload.readableByteCount())
+                            payload.read(byteArray)
+                            val packet = ByteBuffer.wrap(byteArray).parseStreamPacket()
+                            DataBufferUtils.release(payload)
 
                             if (packet == null) {
-                                logger.warn("Failed to parse packet from device $deviceIdentifier")
+                                logger.warn("Failed to parse packet from device $deviceIdentifier (size=$payloadSize)")
                                 return@doOnNext
                             }
 
@@ -119,7 +119,12 @@ class InboundStreamHandler(
                     }
                 }
                 .doOnError { error ->
-                    logger.error("Error in inbound stream for device $deviceIdentifier", error)
+                    if (error is AbortedException ||
+                        error.message?.contains("closed", ignoreCase = true) == true) {
+                        logger.info("Inbound connection closed unexpectedly for device $deviceIdentifier")
+                    } else {
+                        logger.error("Error in inbound stream for device $deviceIdentifier", error)
+                    }
                 }
                 .publishOn(Schedulers.boundedElastic())
                 .doFinally { _ ->
@@ -134,7 +139,12 @@ class InboundStreamHandler(
                 }
                 .then()
         }.onErrorResume { error ->
-            logger.error("Error in inbound handler for device $deviceIdentifier", error)
+            if (error is AbortedException ||
+                error.message?.contains("closed", ignoreCase = true) == true) {
+                logger.info("Inbound handler: connection closed for device $deviceIdentifier")
+            } else {
+                logger.error("Error in inbound handler for device $deviceIdentifier", error)
+            }
             session.close()
         }
     }
