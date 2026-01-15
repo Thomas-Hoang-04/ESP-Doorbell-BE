@@ -137,7 +137,11 @@ class SyncTcpFrameForwarder(
         logger.info("Zipper loop started")
 
         while (running) {
-            if (videoOutputStream == null || audioOutputStream == null) {
+            val vOut = videoOutputStream
+            val aOut = audioOutputStream
+
+            // If neither is connected, wait
+            if (vOut == null && aOut == null) {
                 delay(10)
                 continue
             }
@@ -145,48 +149,72 @@ class SyncTcpFrameForwarder(
             val video = videoQueue.peek()
             val audio = audioQueue.peek()
 
-            when {
-                video != null && audio != null -> {
+            // Mode 1: Both connected - Sync logic
+            if (vOut != null && aOut != null) {
+                when {
+                    video != null && audio != null -> {
+                        if (videoBasePts == null) videoBasePts = video.pts
+                        if (audioBasePts == null) audioBasePts = audio.pts
+
+                        val videoPtsNorm = video.pts - (videoBasePts ?: 0)
+                        val audioPtsNorm = audio.pts - (audioBasePts ?: 0)
+
+                        if (videoPtsNorm <= audioPtsNorm) {
+                            videoQueue.poll()
+                            writeFrame(video, vOut, "video")
+                            videoFramesWritten.incrementAndGet()
+                        } else {
+                            audioQueue.poll()
+                            writeFrame(audio, aOut, "audio")
+                            audioFramesWritten.incrementAndGet()
+                        }
+                    }
+                    video != null -> {
+                        // Only video available in queue
+                        val age = System.currentTimeMillis() - video.arrivalTime
+                        if (age > config.sync.maxSyncWaitMs) {
+                            videoQueue.poll()
+                            if (videoBasePts == null) videoBasePts = video.pts
+                            writeFrame(video, vOut, "video")
+                            videoFramesWritten.incrementAndGet()
+                        } else {
+                            delay(5)
+                        }
+                    }
+                    audio != null -> {
+                        // Only audio available in queue
+                        val age = System.currentTimeMillis() - audio.arrivalTime
+                        if (age > config.sync.maxSyncWaitMs) {
+                            audioQueue.poll()
+                            if (audioBasePts == null) audioBasePts = audio.pts
+                            writeFrame(audio, aOut, "audio")
+                            audioFramesWritten.incrementAndGet()
+                        } else {
+                            delay(5)
+                        }
+                    }
+                    else -> delay(5)
+                }
+            } 
+            // Mode 2: Only Video connected (Fix for deadlock)
+            else if (vOut != null) {
+                if (video != null) {
                     if (videoBasePts == null) videoBasePts = video.pts
+                    videoQueue.poll()
+                    writeFrame(video, vOut, "video")
+                    videoFramesWritten.incrementAndGet()
+                } else {
+                    delay(5)
+                }
+            }
+            // Mode 3: Only Audio connected (Unlikely, but symmetric)
+            else if (aOut != null) {
+                if (audio != null) {
                     if (audioBasePts == null) audioBasePts = audio.pts
-
-                    val videoPtsNorm = video.pts - (videoBasePts ?: 0)
-                    val audioPtsNorm = audio.pts - (audioBasePts ?: 0)
-
-                    if (videoPtsNorm <= audioPtsNorm) {
-                        videoQueue.poll()
-                        writeFrame(video, videoOutputStream!!, "video")
-                        videoFramesWritten.incrementAndGet()
-                    } else {
-                        audioQueue.poll()
-                        writeFrame(audio, audioOutputStream!!, "audio")
-                        audioFramesWritten.incrementAndGet()
-                    }
-                }
-
-                video != null && audio == null -> {
-                    val age = System.currentTimeMillis() - video.arrivalTime
-                    if (age > config.sync.maxSyncWaitMs) {
-                        videoQueue.poll()
-                        writeFrame(video, videoOutputStream!!, "video")
-                        videoFramesWritten.incrementAndGet()
-                    } else {
-                        delay(5)
-                    }
-                }
-
-                video == null && audio != null -> {
-                    val age = System.currentTimeMillis() - audio.arrivalTime
-                    if (age > config.sync.maxSyncWaitMs) {
-                        audioQueue.poll()
-                        writeFrame(audio, audioOutputStream!!, "audio")
-                        audioFramesWritten.incrementAndGet()
-                    } else {
-                        delay(5)
-                    }
-                }
-
-                else -> {
+                    audioQueue.poll()
+                    writeFrame(audio, aOut, "audio")
+                    audioFramesWritten.incrementAndGet()
+                } else {
                     delay(5)
                 }
             }
