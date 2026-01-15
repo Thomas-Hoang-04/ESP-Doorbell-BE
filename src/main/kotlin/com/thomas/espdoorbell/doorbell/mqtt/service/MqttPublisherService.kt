@@ -24,54 +24,54 @@ class MqttPublisherService(
 ) {
     private val logger = LoggerFactory.getLogger(MqttPublisherService::class.java)
 
-    suspend fun publishStreamStart(deviceId: UUID, userId: UUID): Boolean {
+    suspend fun publishStreamStart(deviceIdentifier: String, userId: UUID): Boolean {
         val message = StreamStartMessage(
-            deviceId = deviceId.toString(),
+            deviceId = deviceIdentifier,
             requestedBy = userId.toString()
         )
 
         val topic = mqttProperties.formatTopic(
             mqttProperties.topics.streamStart,
-            deviceId.toString()
+            deviceIdentifier
         )
 
         return publishMessage(topic, message, mqttProperties.qos.default, retained = false)
     }
 
-    suspend fun publishStreamStop(deviceId: UUID): Boolean {
-        val message = StreamStopMessage(deviceId = deviceId.toString())
+    suspend fun publishStreamStop(deviceIdentifier: String): Boolean {
+        val message = StreamStopMessage(deviceId = deviceIdentifier)
 
         val topic = mqttProperties.formatTopic(
             mqttProperties.topics.streamStop,
-            deviceId.toString()
+            deviceIdentifier
         )
 
         return publishMessage(topic, message, mqttProperties.qos.default, retained = false)
     }
 
-    suspend fun publishSetChime(deviceId: UUID, chimeIndex: Int): Boolean {
+    suspend fun publishSetChime(deviceIdentifier: String, chimeIndex: Int): Boolean {
         val message = SetChimeMessage(
-            deviceId = deviceId.toString(),
+            deviceId = deviceIdentifier,
             chimeIndex = chimeIndex
         )
 
         val topic = mqttProperties.formatTopic(
             mqttProperties.topics.settings,
-            deviceId.toString()
+            deviceIdentifier
         )
 
         return publishMessage(topic, message, mqttProperties.qos.default, retained = false)
     }
 
-    suspend fun publishSetVolume(deviceId: UUID, volumeLevel: Int): Boolean {
+    suspend fun publishSetVolume(deviceIdentifier: String, volumeLevel: Int): Boolean {
         val message = SetVolumeMessage(
-            deviceId = deviceId.toString(),
+            deviceId = deviceIdentifier,
             volumeLevel = volumeLevel
         )
 
         val topic = mqttProperties.formatTopic(
             mqttProperties.topics.settings,
-            deviceId.toString()
+            deviceIdentifier
         )
 
         return publishMessage(topic, message, mqttProperties.qos.default, retained = false)

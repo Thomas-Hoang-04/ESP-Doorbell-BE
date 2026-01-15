@@ -87,7 +87,7 @@ class DeviceService(
 
     @Transactional
     suspend fun updateDevice(deviceId: UUID, request: DeviceUpdateRequest): Boolean {
-        deviceRepository.findById(deviceId)
+        val device = deviceRepository.findById(deviceId)
             ?: throw DomainException.EntityNotFound.Device("id", deviceId.toString())
 
         val query = Query.query(Criteria.where("id").`is`(deviceId))
@@ -118,10 +118,10 @@ class DeviceService(
         val updated = (result ?: 0L) > 0
 
         if (updated && request.chimeIndex != null) {
-            mqttPublisherService.publishSetChime(deviceId, request.chimeIndex)
+            mqttPublisherService.publishSetChime(device.deviceId, request.chimeIndex)
         }
         if (updated && request.volumeLevel != null) {
-            mqttPublisherService.publishSetVolume(deviceId, request.volumeLevel)
+            mqttPublisherService.publishSetVolume(device.deviceId, request.volumeLevel)
         }
 
         return updated

@@ -51,7 +51,7 @@ class StreamController(
                 .body(StreamResponse(success = false, message = "Device offline"))
         }
 
-        val published = mqttPublisherService.publishStreamStart(deviceId, principal.id)
+        val published = mqttPublisherService.publishStreamStart(device.deviceIdentifier, principal.id)
         if (!published) {
             logger.error("Failed to publish stream start for device {}", deviceId)
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -79,7 +79,14 @@ class StreamController(
                 .body(StreamResponse(success = false, message = "No access to device"))
         }
 
-        val published = mqttPublisherService.publishStreamStop(deviceId)
+        val device = try {
+            deviceService.getDevice(deviceId)
+        } catch (_: Exception) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(StreamResponse(success = false, message = "Device not found"))
+        }
+
+        val published = mqttPublisherService.publishStreamStop(device.deviceIdentifier)
         if (!published) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(StreamResponse(success = false, message = "Failed to send command"))
