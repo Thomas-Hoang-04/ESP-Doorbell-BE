@@ -1,6 +1,5 @@
 package com.thomas.espdoorbell.doorbell.streaming.pipeline
 
-import com.thomas.espdoorbell.doorbell.device.service.DeviceService
 import com.thomas.espdoorbell.doorbell.streaming.config.StreamingProperties
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.sync.Mutex
@@ -13,7 +12,6 @@ import java.util.concurrent.ConcurrentHashMap
 @Service
 class DeviceStreamManager(
     private val config: StreamingProperties,
-    private val deviceService: DeviceService,
     private val healthTracker: PipelineHealthTracker
 ) {
     private val logger = LoggerFactory.getLogger(DeviceStreamManager::class.java)
@@ -35,7 +33,6 @@ class DeviceStreamManager(
                 val pipeline = DeviceTranscodingPipeline(
                     deviceId = deviceId,
                     config = config,
-                    deviceService = deviceService,
                     healthTracker = healthTracker
                 )
                 try {

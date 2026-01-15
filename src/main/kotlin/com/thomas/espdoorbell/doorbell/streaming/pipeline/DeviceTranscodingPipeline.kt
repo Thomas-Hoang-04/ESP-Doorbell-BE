@@ -1,6 +1,5 @@
 package com.thomas.espdoorbell.doorbell.streaming.pipeline
 
-import com.thomas.espdoorbell.doorbell.device.service.DeviceService
 import com.thomas.espdoorbell.doorbell.streaming.config.StreamingProperties
 import com.thomas.espdoorbell.doorbell.streaming.transcoding.FFmpegProcessManager
 import com.thomas.espdoorbell.doorbell.streaming.transcoding.WebMStreamRelay
@@ -17,7 +16,6 @@ import java.util.UUID
 class DeviceTranscodingPipeline(
     private val deviceId: UUID,
     private val config: StreamingProperties,
-    private val deviceService: DeviceService,
     private val healthTracker: PipelineHealthTracker
 ) {
     private val logger = LoggerFactory.getLogger(DeviceTranscodingPipeline::class.java)
@@ -34,8 +32,6 @@ class DeviceTranscodingPipeline(
         logger.info("Starting transcoding pipeline for device {}", deviceId)
 
         try {
-            deviceService.getDevice(deviceId)
-
             frameForwarder = SyncTcpFrameForwarder(config)
             frameForwarder.start(scope)
 

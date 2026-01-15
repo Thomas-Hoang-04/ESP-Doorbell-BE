@@ -26,42 +26,40 @@ class InboundStreamHandler(
     private val logger = LoggerFactory.getLogger(InboundStreamHandler::class.java)
 
     override fun handle(session: WebSocketSession): Mono<Void> {
-        val deviceId = session.handshakeInfo.uri.path.split("/").lastOrNull()
-        if (deviceId == null) {
+        val deviceIdentifier = session.handshakeInfo.uri.path.split("/").lastOrNull()
+        if (deviceIdentifier.isNullOrBlank()) {
             logger.error("Invalid WebSocket path: ${session.handshakeInfo.uri.path}")
             return session.close()
         }
 
-        val deviceIdUUID: UUID = try {
-            UUID.fromString(deviceId)
-        } catch (e: IllegalArgumentException) {
-            logger.error("Invalid device ID format: $deviceId", e)
-            return session.close()
-        }
-
-        logger.info("Inbound connection established for device $deviceId, session ${session.id}")
+        logger.info("Inbound connection attempt for device $deviceIdentifier, session ${session.id}")
 
         return mono {
             try {
                 val deviceKey = session.handshakeInfo.headers.getFirst("X-Device-Key")
                 if (deviceKey.isNullOrBlank()) {
-                    logger.warn("Missing X-Device-Key header for device $deviceId")
+                    logger.warn("Missing X-Device-Key header for device $deviceIdentifier")
                     throw SecurityException("Missing device key")
                 }
 
-                val isValidKey = deviceService.verifyDeviceKey(deviceId, deviceKey)
+                val isValidKey = deviceService.verifyDeviceKey(deviceIdentifier, deviceKey)
                 if (!isValidKey) {
-                    logger.warn("Invalid device key for device $deviceId")
+                    logger.warn("Invalid device key for device $deviceIdentifier")
                     throw SecurityException("Invalid device key")
                 }
-                deviceStreamManager.registerInbound(deviceIdUUID, session.id)
+
+                val device = deviceService.getDeviceEntityByIdentifier(deviceIdentifier)
+                val deviceIdUUID = device.id!!
                 
-                logger.info("Device $deviceId authenticated and registered")
+                deviceStreamManager.registerInbound(deviceIdUUID, session.id)
+                logger.info("Device $deviceIdentifier authenticated and registered with UUID $deviceIdUUID")
+                
+                deviceIdUUID
             } catch (e: Exception) {
-                logger.error("Failed to authenticate or register device $deviceId", e)
+                logger.error("Failed to authenticate or register device $deviceIdentifier", e)
                 throw e
             }
-        }.flatMap {
+        }.flatMap { deviceIdUUID ->
             session.receive()
                 .doOnNext { message ->
                     if (message.type == WebSocketMessage.Type.BINARY) {
@@ -74,7 +72,7 @@ class InboundStreamHandler(
                             }
 
                             if (packet == null) {
-                                logger.warn("Failed to parse packet from device $deviceId")
+                                logger.warn("Failed to parse packet from device $deviceIdentifier")
                                 return@doOnNext
                             }
 
@@ -83,14 +81,14 @@ class InboundStreamHandler(
                             logger.debug(
                                 "Received {} packet from device {}: pts={}ms, size={} bytes",
                                 packet.type.name,
-                                deviceId,
+                                deviceIdentifier,
                                 packet.ptsMillis,
                                 packet.payload.size
                             )
 
                             meterRegistry.counter(
                                 "stream.inbound.frames",
-                                "device_id", deviceId,
+                                "device_id", deviceIdentifier,
                                 "type", packet.type.name
                             ).increment()
 
@@ -111,28 +109,27 @@ class InboundStreamHandler(
                                 }
                             }
                         } catch (e: Exception) {
-                            logger.error("Error processing packet from device $deviceId", e)
+                            logger.error("Error processing packet from device $deviceIdentifier", e)
                         }
                     }
                 }
                 .doOnError { error ->
-                    logger.error("Error in inbound stream for device $deviceId", error)
+                    logger.error("Error in inbound stream for device $deviceIdentifier", error)
                 }
                 .publishOn(Schedulers.boundedElastic())
                 .doFinally { _ ->
-                    logger.info("Inbound connection closed for device $deviceId, session ${session.id}")
-                    // Unregister inbound connection
+                    logger.info("Inbound connection closed for device $deviceIdentifier, session ${session.id}")
                     mono {
                         try {
                             deviceStreamManager.unregisterInbound(deviceIdUUID, session.id)
                         } catch (e: Exception) {
-                            logger.error("Error unregistering inbound for device $deviceId", e)
+                            logger.error("Error unregistering inbound for device $deviceIdentifier", e)
                         }
                     }.subscribe()
                 }
                 .then()
         }.onErrorResume { error ->
-            logger.error("Error in inbound handler for device $deviceId", error)
+            logger.error("Error in inbound handler for device $deviceIdentifier", error)
             session.close()
         }
     }

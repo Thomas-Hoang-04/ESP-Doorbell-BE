@@ -58,6 +58,11 @@ class DeviceService(
         deviceRepository.findByDeviceId(identifier)?.toDto()
             ?: throw DomainException.EntityNotFound.Device("identifier", identifier)
 
+    @Transactional(readOnly = true)
+    suspend fun getDeviceEntityByIdentifier(identifier: String): Devices =
+        deviceRepository.findByDeviceId(identifier)
+            ?: throw DomainException.EntityNotFound.Device("identifier", identifier)
+
     suspend fun listDeviceAccess(deviceId: UUID): Flow<UserDeviceAccessDto> =
         userDeviceAccessRepository.findAllByDevice(deviceId).map { it.toDto() }
 
