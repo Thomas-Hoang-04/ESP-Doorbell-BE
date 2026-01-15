@@ -134,6 +134,17 @@ class DeviceStreamManager(
         return pipelines.containsKey(deviceId)
     }
 
+    suspend fun waitForPipeline(deviceId: UUID, timeoutMs: Long = 30000): Boolean {
+        val startTime = System.currentTimeMillis()
+        while (System.currentTimeMillis() - startTime < timeoutMs) {
+            if (pipelines.containsKey(deviceId)) {
+                return true
+            }
+            kotlinx.coroutines.delay(100)
+        }
+        return false
+    }
+
     fun getActiveDeviceIds(): Set<UUID> {
         return pipelines.keys.toSet()
     }

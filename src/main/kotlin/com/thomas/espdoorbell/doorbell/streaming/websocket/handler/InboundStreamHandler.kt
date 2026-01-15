@@ -63,6 +63,11 @@ class InboundStreamHandler(
             session.receive()
                 .doOnNext { message ->
                     if (message.type == WebSocketMessage.Type.BINARY) {
+                        val payloadSize = message.payload.readableByteCount()
+                        if (payloadSize == 0) {
+                            return@doOnNext
+                        }
+                        
                         try {
                             val packet = message.payload.let {
                                 val buffer = ByteBuffer.allocate(it.readableByteCount())

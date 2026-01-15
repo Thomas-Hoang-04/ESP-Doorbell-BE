@@ -73,30 +73,38 @@ class OutboundStreamHandler(
             logger.info("User $userId authenticated for device $deviceId stream")
             userId
         }.flatMap { userId ->
-            if (!deviceStreamManager.hasPipeline(deviceId)) {
-                logger.warn("No active pipeline for device $deviceId")
-                return@flatMap session.close()
-            }
-
-            deviceStreamManager.registerOutbound(deviceId, session.id)
-
-            val dataBufferFactory = session.bufferFactory()
-
-            val messageFlow = createMessageFlow(deviceId, dataBufferFactory)
-                .onCompletion {
-                    logger.info("Outbound connection closed for device $deviceId, session ${session.id}")
-                    try {
-                        deviceStreamManager.unregisterOutbound(deviceId, session.id)
-                    } catch (e: Exception) {
-                        logger.error("Error unregistering outbound for device $deviceId", e)
+            mono {
+                if (!deviceStreamManager.hasPipeline(deviceId)) {
+                    logger.info("Waiting for pipeline for device $deviceId...")
+                    val pipelineAvailable = deviceStreamManager.waitForPipeline(deviceId, 30000)
+                    if (!pipelineAvailable) {
+                        logger.warn("Timeout waiting for pipeline for device $deviceId")
+                        throw IllegalStateException("Stream not available - device may be offline")
                     }
+                    logger.info("Pipeline became available for device $deviceId")
                 }
+                Unit
+            }.flatMap {
+                deviceStreamManager.registerOutbound(deviceId, session.id)
 
-            session.send(messageFlow.asPublisher())
-                .onErrorResume { error ->
-                    logger.error("Error in outbound handler for device $deviceId, session ${session.id}", error)
-                    session.close()
-                }
+                val dataBufferFactory = session.bufferFactory()
+
+                val messageFlow = createMessageFlow(deviceId, dataBufferFactory)
+                    .onCompletion {
+                        logger.info("Outbound connection closed for device $deviceId, session ${session.id}")
+                        try {
+                            deviceStreamManager.unregisterOutbound(deviceId, session.id)
+                        } catch (e: Exception) {
+                            logger.error("Error unregistering outbound for device $deviceId", e)
+                        }
+                    }
+
+                session.send(messageFlow.asPublisher())
+                    .onErrorResume { error ->
+                        logger.error("Error in outbound handler for device $deviceId, session ${session.id}", error)
+                        session.close()
+                    }
+            }
         }.onErrorResume { error ->
             logger.error("Authentication failed for outbound stream", error)
             session.close()
