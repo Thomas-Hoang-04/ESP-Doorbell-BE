@@ -128,12 +128,22 @@ class OutboundStreamHandler(
         deviceId: UUID,
         dataBufferFactory: DataBufferFactory
     ): Flow<WebSocketMessage> = flow {
-        val initSegment = deviceStreamManager.getInitSegment(deviceId)
+        var initSegment = deviceStreamManager.getInitSegment(deviceId)
+        var attempts = 0
+        val maxAttempts = 100
+        
+        while (initSegment == null && attempts < maxAttempts) {
+            kotlinx.coroutines.delay(100)
+            initSegment = deviceStreamManager.getInitSegment(deviceId)
+            attempts++
+        }
+        
         if (initSegment != null) {
-            logger.info("Sending init segment ({} bytes) to new client for device {}", initSegment.size, deviceId)
+            logger.info("Sending init segment ({} bytes) to new client for device {} (after {} attempts)", initSegment.size, deviceId, attempts)
             emit(WebSocketMessage(WebSocketMessage.Type.BINARY, dataBufferFactory.wrap(initSegment)))
         } else {
-            logger.warn("No init segment available for device {}", deviceId)
+            logger.error("Init segment not available after {}ms for device {}", maxAttempts * 100, deviceId)
+            return@flow
         }
 
         val clusterFlow = deviceStreamManager.subscribeToClusterFlow(deviceId)
