@@ -22,9 +22,8 @@ class JWTToPrincipal(
     }
 
     suspend fun convert(jwt: DecodedJWT): Optional<UserPrincipal> {
-        val username = jwt.getClaim("username").asString() ?: return Optional.empty()
-        val user: Users = userRepo.findByLogin(username) ?: return Optional.empty()
-        assert(user.id == UUID.fromString(jwt.subject))
+        val userId = UUID.fromString(jwt.subject)
+        val user: Users = userRepo.findById(userId) ?: return Optional.empty()
         return Optional.of(user.toPrincipal(extractAuthClaim(jwt)))
     }
 }

@@ -18,7 +18,6 @@ class JWTManager {
             JWT.create()
                 .withSubject(id.toString())
                 .withExpiresAt(Instant.now().plus(Duration.ofDays(1)))
-                .withClaim("username", username)
                 .withClaim("auth", roles)
                 .sign(Algorithm.RSA512(RSAKeyProperties.publicKey, RSAKeyProperties.privateKey))
         }
