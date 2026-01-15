@@ -45,30 +45,42 @@ data class StreamPacket(
     }
 }
 
+private val packetLogger = org.slf4j.LoggerFactory.getLogger("StreamPacketParser")
+
 fun ByteBuffer.parseStreamPacket(): StreamPacket? {
-    // Ensure big-endian byte order
     order(ByteOrder.BIG_ENDIAN)
 
-    // Validate minimum packet size
     if (remaining() < StreamPacket.HEADER_SIZE) {
+        packetLogger.warn("Packet too small: {} bytes (need {})", remaining(), StreamPacket.HEADER_SIZE)
         return null
     }
 
-    // Parse header (8 bytes)
-    val magicNumber = short              // Offset 0-1
-    val typeByte = get()                 // Offset 2
-    val flags = get()                    // Offset 3 (reserved)
-    val ptsMillis = int                  // Offset 4-7
+    val pos = position()
+    val firstBytes = ByteArray(minOf(16, remaining()))
+    get(firstBytes)
+    position(pos)
+    packetLogger.info("First bytes (hex): {}", firstBytes.joinToString(" ") { "%02X".format(it) })
 
-    // Validate magic number
+    val magicNumber = short
+    val typeByte = get()
+    val flags = get()
+    val ptsMillis = int
+
+    packetLogger.info("Magic=0x{}, Expected=0x{}, Type={}, PTS={}", 
+        magicNumber.toInt().and(0xFFFF).toString(16).uppercase(),
+        StreamPacket.MAGIC_NUMBER.toString(16).uppercase(),
+        typeByte, ptsMillis)
+
     if (magicNumber != StreamPacket.MAGIC_NUMBER) {
+        packetLogger.warn("Magic number mismatch!")
         return null
     }
 
-    // Parse packet type
-    val type = StreamPacket.PacketType.fromByte(typeByte) ?: return null
+    val type = StreamPacket.PacketType.fromByte(typeByte) ?: run {
+        packetLogger.warn("Unknown packet type: {}", typeByte)
+        return null
+    }
 
-    // Extract payload
     val payloadSize = remaining()
     val payload = ByteArray(payloadSize)
     get(payload)
