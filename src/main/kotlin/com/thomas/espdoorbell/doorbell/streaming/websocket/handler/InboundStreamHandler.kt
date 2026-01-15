@@ -7,7 +7,6 @@ import com.thomas.espdoorbell.doorbell.streaming.websocket.protocol.parseStreamP
 import io.micrometer.core.instrument.MeterRegistry
 import kotlinx.coroutines.reactor.mono
 import org.slf4j.LoggerFactory
-import org.springframework.core.io.buffer.DataBufferUtils
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.socket.WebSocketHandler
 import org.springframework.web.reactive.socket.WebSocketMessage
@@ -74,7 +73,6 @@ class InboundStreamHandler(
                             val byteArray = ByteArray(payload.readableByteCount())
                             payload.read(byteArray)
                             val packet = ByteBuffer.wrap(byteArray).parseStreamPacket()
-                            DataBufferUtils.release(payload)
 
                             if (packet == null) {
                                 logger.warn("Failed to parse packet from device $deviceIdentifier (size=$payloadSize)")
