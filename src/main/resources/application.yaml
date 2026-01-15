@@ -13,14 +13,9 @@ server:
 
 streaming:
   websocket-base-url: wss://doorbell-thomas.site
-  ffmpeg:
-    path: ffmpeg
+  gstreamer:
     video-bitrate: 1M
     audio-bitrate: 128k
-    cluster-time-ms: 500
-  tcp:
-    video-port: 5001
-    audio-port: 5002
-  sync:
-    max-sync-wait-ms: 500
-    max-queue-size: 100
+    cpu-used: 5
+    opus-frame-size-ms: 20
+    keyframe-max-dist: 30

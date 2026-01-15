@@ -4,25 +4,14 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 
 @ConfigurationProperties(prefix = "streaming")
 data class StreamingProperties(
-    var ffmpeg: FfmpegSettings = FfmpegSettings(),
-    var tcp: TcpSettings = TcpSettings(),
-    var sync: SyncSettings = SyncSettings(),
+    var gstreamer: GStreamerSettings = GStreamerSettings(),
     var websocketBaseUrl: String = "ws://localhost:8080"
 ) {
-    data class FfmpegSettings(
-        var path: String = "ffmpeg",
+    data class GStreamerSettings(
         var videoBitrate: String = "1M",
         var audioBitrate: String = "128k",
-        var clusterTimeMs: Int = 500
-    )
-
-    data class TcpSettings(
-        var videoPort: Int = 0,
-        var audioPort: Int = 0
-    )
-
-    data class SyncSettings(
-        var maxSyncWaitMs: Long = 200,
-        var maxQueueSize: Int = 50
+        var cpuUsed: Int = 5,
+        var opusFrameSizeMs: Int = 20,
+        var keyframeMaxDist: Int = 30
     )
 }
