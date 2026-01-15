@@ -40,7 +40,7 @@ class AuthController(
         val principal = authentication.principal as UserPrincipal
 
         val roles = principal.authorities.map { it.authority }
-        val token = jwtManager.issue(principal.id, principal.username, roles)
+        val token = jwtManager.issue(principal.id, roles)
 
         val user = userService.getUser(principal.id)
         userService.updateLoginTimestamp(user.id)

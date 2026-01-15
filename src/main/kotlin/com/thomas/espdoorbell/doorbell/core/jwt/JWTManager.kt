@@ -13,7 +13,7 @@ import java.util.UUID
 
 @Component
 class JWTManager {
-    suspend fun issue(id: UUID, username: String, roles: List<String>): String
+    suspend fun issue(id: UUID, roles: List<String>): String
         = withContext(Dispatchers.Default) {
             JWT.create()
                 .withSubject(id.toString())
