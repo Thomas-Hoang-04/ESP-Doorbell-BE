@@ -21,4 +21,26 @@ class StorageService(
         // Return relative path for URL generation
         return "uploads/events/$eventId/$fileName"
     }
+
+    fun deleteEventImage(filePath: String): Boolean {
+        return try {
+            val path = Paths.get(filePath)
+            Files.deleteIfExists(path)
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    fun deleteEventDirectory(eventId: UUID) {
+        val eventDir = Paths.get(appProperties.storage.uploadDir, "events", eventId.toString())
+        if (!Files.exists(eventDir)) {
+            return
+        }
+
+        Files.list(eventDir).use { stream ->
+            if (stream.findAny().isEmpty) {
+                Files.deleteIfExists(eventDir)
+            }
+        }
+    }
 }

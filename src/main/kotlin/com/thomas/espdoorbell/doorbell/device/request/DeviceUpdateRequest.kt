@@ -1,6 +1,8 @@
 package com.thomas.espdoorbell.doorbell.device.request
 
+import com.fasterxml.jackson.annotation.JsonFormat
 import com.fasterxml.jackson.annotation.JsonProperty
+import java.time.OffsetTime
 
 
 data class DeviceUpdateRequest(
@@ -23,5 +25,15 @@ data class DeviceUpdateRequest(
     val chimeIndex: Int? = null,
 
     @field:JsonProperty("volume_level")
-    val volumeLevel: Int? = null
+    val volumeLevel: Int? = null,
+    @field:JsonProperty("night_mode_enabled")
+    val nightModeEnabled: Boolean? = null,
+
+    @field:JsonFormat(pattern = "HH:mmXXX")
+    @field:JsonProperty("night_mode_start")
+    val nightModeStart: OffsetTime? = null,
+
+    @field:JsonFormat(pattern = "HH:mmXXX")
+    @field:JsonProperty("night_mode_end")
+    val nightModeEnd: OffsetTime? = null
 )

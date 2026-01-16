@@ -13,6 +13,8 @@ import java.util.*
 interface EventRepository : CoroutineCrudRepository<Events, UUID> {
     fun findAllByDeviceId(deviceId: UUID): Flow<Events>
 
+    fun findAllByEventTimestampBefore(cutoff: OffsetDateTime): Flow<Events>
+
     fun findByCreatedAtBetween(start: OffsetDateTime, end: OffsetDateTime): Flow<Events>
 
     @Query("SELECT * FROM events ORDER BY created_at DESC LIMIT :limit")

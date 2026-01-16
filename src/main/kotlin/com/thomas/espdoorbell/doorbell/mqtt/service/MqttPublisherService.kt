@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.thomas.espdoorbell.doorbell.mqtt.config.MqttProperties
 import com.thomas.espdoorbell.doorbell.mqtt.model.FactoryResetMessage
 import com.thomas.espdoorbell.doorbell.mqtt.model.SetChimeMessage
+import com.thomas.espdoorbell.doorbell.mqtt.model.SetNightModeMessage
 import com.thomas.espdoorbell.doorbell.mqtt.model.SetVolumeMessage
 import com.thomas.espdoorbell.doorbell.mqtt.model.StreamStartMessage
 import com.thomas.espdoorbell.doorbell.mqtt.model.StreamStopMessage
@@ -68,6 +69,27 @@ class MqttPublisherService(
         val message = SetVolumeMessage(
             deviceId = deviceIdentifier,
             volumeLevel = volumeLevel
+        )
+
+        val topic = mqttProperties.formatTopic(
+            mqttProperties.topics.settings,
+            deviceIdentifier
+        )
+
+        return publishMessage(topic, message, mqttProperties.qos.default, retained = false)
+    }
+
+    suspend fun publishSetNightMode(
+        deviceIdentifier: String,
+        enabled: Boolean,
+        startTime: String,
+        endTime: String
+    ): Boolean {
+        val message = SetNightModeMessage(
+            deviceId = deviceIdentifier,
+            nightModeEnabled = enabled,
+            nightModeStart = startTime,
+            nightModeEnd = endTime
         )
 
         val topic = mqttProperties.formatTopic(

@@ -90,6 +90,24 @@ data class SetVolumeMessage(
     val volumeLevel: Int
 ) : MqttMessage()
 
+data class SetNightModeMessage(
+    val action: String = "set_night_mode",
+
+    @field:JsonProperty("device_id")
+    override val deviceId: String,
+
+    override val timestamp: Long = System.currentTimeMillis(),
+
+    @field:JsonProperty("night_mode_enabled")
+    val nightModeEnabled: Boolean,
+
+    @field:JsonProperty("night_mode_start")
+    val nightModeStart: String,
+
+    @field:JsonProperty("night_mode_end")
+    val nightModeEnd: String
+) : MqttMessage()
+
 data class FactoryResetMessage(
     val action: String = "factory_reset",
 

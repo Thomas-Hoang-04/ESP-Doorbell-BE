@@ -8,6 +8,7 @@ import org.springframework.data.annotation.LastModifiedDate
 import org.springframework.data.relational.core.mapping.Column
 import org.springframework.data.relational.core.mapping.Table
 import java.time.OffsetDateTime
+import java.time.OffsetTime
 import java.util.UUID
 
 @Table(name = "devices")
@@ -50,6 +51,15 @@ class Devices(
     @Column("volume_level")
     val volumeLevel: Int = 10,
 
+    @Column("night_mode_enabled")
+    val nightModeEnabled: Boolean = false,
+
+    @Column("night_mode_start")
+    val nightModeStart: OffsetTime? = null,
+
+    @Column("night_mode_end")
+    val nightModeEnd: OffsetTime? = null,
+
     @Column("last_online")
     val lastOnline: OffsetDateTime? = null,
 
@@ -77,6 +87,7 @@ class Devices(
         require(signalStrength == null || signalStrength in -100..0) { "Signal strength must be between -100 and 0" }
         require(chimeIndex in 1..4) { "Chime index must be between 1 and 4" }
         require(volumeLevel in 0..100) { "Volume level must be between 0 and 100" }
+        require(!((nightModeStart == null) xor (nightModeEnd == null))) { "Night mode start/end must both be set or null" }
     }
 
     fun toDto(): DeviceDto = DeviceDto(
@@ -91,6 +102,9 @@ class Devices(
         signalStrengthDbm = signalStrength,
         chimeIndex = chimeIndex,
         volumeLevel = volumeLevel,
+        nightModeEnabled = nightModeEnabled,
+        nightModeStart = nightModeStart,
+        nightModeEnd = nightModeEnd,
         lastOnlineAt = lastOnline
     )
 }

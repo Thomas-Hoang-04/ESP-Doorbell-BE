@@ -25,6 +25,7 @@ import org.springframework.security.crypto.argon2.Argon2PasswordEncoder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.OffsetDateTime
+import java.time.format.DateTimeFormatter
 import java.util.*
 
 @Service
@@ -35,6 +36,7 @@ class DeviceService(
     private val passwordEncoder: Argon2PasswordEncoder,
     private val mqttPublisherService: MqttPublisherService
 ) {
+    private val nightModeFormatter = DateTimeFormatter.ofPattern("HH:mmXXX")
 
     
     fun listDevices(): Flow<DeviceDto> = deviceRepository.findAll().map { it.toDto() }
@@ -111,6 +113,14 @@ class DeviceService(
             require(it in 0..100) { "Volume level must be between 0 and 100" }
             updates["volume_level"] = it
         }
+        request.nightModeEnabled?.let { updates["night_mode_enabled"] = it }
+        if (request.nightModeStart != null || request.nightModeEnd != null) {
+            require(!(request.nightModeStart == null || request.nightModeEnd == null)) {
+                "Night mode start and end must both be set"
+            }
+            updates["night_mode_start"] = request.nightModeStart
+            updates["night_mode_end"] = request.nightModeEnd
+        }
 
         if (updates.isEmpty()) { return false }
 
@@ -127,6 +137,20 @@ class DeviceService(
         }
         if (updated && request.volumeLevel != null) {
             mqttPublisherService.publishSetVolume(device.deviceId, request.volumeLevel)
+        }
+        if (updated && (request.nightModeEnabled != null || request.nightModeStart != null || request.nightModeEnd != null)) {
+            val enabled = request.nightModeEnabled ?: device.nightModeEnabled
+            val start = request.nightModeStart ?: device.nightModeStart
+            val end = request.nightModeEnd ?: device.nightModeEnd
+
+            if (start != null && end != null) {
+                mqttPublisherService.publishSetNightMode(
+                    device.deviceId,
+                    enabled,
+                    start.format(nightModeFormatter),
+                    end.format(nightModeFormatter)
+                )
+            }
         }
 
         return updated
