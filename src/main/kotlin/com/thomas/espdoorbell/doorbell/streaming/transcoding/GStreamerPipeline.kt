@@ -95,7 +95,7 @@ class GStreamerPipeline(
             }
 
             audioAppSrc?.apply {
-                caps = Caps.fromString("audio/mpeg,mpegversion=4,stream-format=adts,channels=2,rate=48000")
+                caps = Caps.fromString("audio/mpeg,mpegversion=4,stream-format=adts,channels=2,rate=16000")
                 set("format", Format.TIME)
                 set("is-live", true)
                 set("block", false)
@@ -151,8 +151,8 @@ class GStreamerPipeline(
             appsrc name=video_src ! 
             jpegdec ! 
             videoconvert ! 
-            vp8enc deadline=1 cpu-used=${gstConfig.cpuUsed} target-bitrate=$videoBitrate keyframe-max-dist=5 threads=4 error-resilient=default ! 
-            queue max-size-time=0 max-size-bytes=0 max-size-buffers=200 ! 
+            vp8enc deadline=1 cpu-used=8 target-bitrate=$videoBitrate keyframe-max-dist=5 threads=4 error-resilient=default ! 
+            queue max-size-time=0 max-size-bytes=0 max-size-buffers=5 leaky=downstream ! 
             mux.
             
             appsrc name=audio_src ! 
@@ -162,7 +162,7 @@ class GStreamerPipeline(
             audioresample ! 
             audio/x-raw,rate=48000,channels=2 ! 
             opusenc bitrate=$audioBitrate frame-size=${gstConfig.opusFrameSizeMs} ! 
-            queue max-size-time=0 max-size-bytes=0 max-size-buffers=200 ! 
+            queue max-size-time=0 max-size-bytes=0 max-size-buffers=10 leaky=downstream ! 
             mux.
             
             webmmux name=mux streamable=true ! 
