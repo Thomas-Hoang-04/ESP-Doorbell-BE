@@ -136,10 +136,27 @@ class GStreamerPipeline(
             }
 
             logger.info("GStreamer pipeline started successfully")
-        } catch (e: Exception) {
-            logger.error("Failed to start GStreamer pipeline", e)
             stop()
             throw e
+        }
+    }
+
+    private fun handleNewSample(sink: AppSink) {
+        val sample = sink.pullSample() ?: return
+        try {
+            val buffer = sample.buffer
+            if (buffer != null) {
+                val size = buffer.size
+                if (size > 0) {
+                    val data = ByteArray(size.toInt())
+                    buffer.extractDeep(0, data)
+                    clusterCount++
+                    // logger.debug("Emitting cluster {}: {} bytes", clusterCount, size) // verbose
+                    _clusterFlow.tryEmit(data)
+                }
+            }
+        } finally {
+            sample.dispose()
         }
     }
 
@@ -152,7 +169,7 @@ class GStreamerPipeline(
             jpegdec ! 
             videoconvert ! 
             vp8enc deadline=1 cpu-used=${gstConfig.cpuUsed} target-bitrate=$videoBitrate keyframe-max-dist=30 threads=4 error-resilient=default ! 
-            queue max-size-time=0 max-size-bytes=0 max-size-buffers=3 ! 
+            queue max-size-time=0 max-size-bytes=0 max-size-buffers=200 ! 
             mux.
             
             appsrc name=audio_src ! 
@@ -162,7 +179,7 @@ class GStreamerPipeline(
             audioresample ! 
             audio/x-raw,rate=48000,channels=2 ! 
             opusenc bitrate=$audioBitrate frame-size=${gstConfig.opusFrameSizeMs} ! 
-            queue max-size-time=0 max-size-bytes=0 max-size-buffers=3 ! 
+            queue max-size-time=0 max-size-bytes=0 max-size-buffers=200 ! 
             mux.
             
             webmmux name=mux streamable=true ! 
