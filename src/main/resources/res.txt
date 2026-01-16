@@ -1,0 +1,126 @@
+androidx.media3.exoplayer.ExoPlaybackException: Source error
+	at androidx.media3.exoplayer.ExoPlayerImplInternal.handleIoException(ExoPlayerImplInternal.java:937)
+	at androidx.media3.exoplayer.ExoPlayerImplInternal.handleMessage(ExoPlayerImplInternal.java:913)
+	at android.os.Handler.dispatchMessage(Handler.java:102)
+	at android.os.Looper.loopOnce(Looper.java:240)
+	at android.os.Looper.loop(Looper.java:351)
+	at android.os.HandlerThread.run(HandlerThread.java:67)
+Caused by: java.io.IOException: Stream unavailable (no data received)
+	at com.thomas.doorbell.streaming.WebSocketDataSource.read(WebSocketDataSource.kt:97)
+	at androidx.media3.datasource.StatsDataSource.read(StatsDataSource.java:104)
+	at androidx.media3.extractor.DefaultExtractorInput.readFromUpstream(DefaultExtractorInput.java:298)
+	at androidx.media3.extractor.DefaultExtractorInput.advancePeekPosition(DefaultExtractorInput.java:166)
+	at androidx.media3.extractor.DefaultExtractorInput.peekFully(DefaultExtractorInput.java:148)
+	at androidx.media3.extractor.DefaultExtractorInput.peekFully(DefaultExtractorInput.java:157)
+	at androidx.media3.extractor.flv.FlvExtractor.sniff(FlvExtractor.java:107)
+	at androidx.media3.exoplayer.source.BundledExtractorsAdapter.init(BundledExtractorsAdapter.java:85)
+	at androidx.media3.exoplayer.source.ProgressiveMediaPeriod$ExtractingLoadable.load(ProgressiveMediaPeriod.java:1169)
+	at androidx.media3.exoplayer.upstream.Loader$LoadTask.run(Loader.java:453)
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1154)
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:652)
+	at java.lang.Thread.run(Thread.java:1563)
+
+2026-01-15T21:24:41.432Z  INFO 1 --- [ESP-Doorbell] [tor-tcp-epoll-1] c.t.e.d.user.controller.AuthController   : User logged in: 188a96e6-eaab-4396-9bd6-bec9ed5a0668
+2026-01-15T21:24:43.883Z  INFO 1 --- [ESP-Doorbell] [atcher-worker-3] c.t.e.d.m.h.DeviceHeartbeatHandler       : Heartbeat processed for device 98a316f5-1ca6-4971-8445-98a316f51ca6
+2026-01-15T21:24:45.909Z  INFO 1 --- [ESP-Doorbell] [tor-tcp-epoll-1] c.t.e.d.streaming.api.StreamController   : Stream start request from user 188a96e6-eaab-4396-9bd6-bec9ed5a0668 for device 8038e490-4152-4f64-a70b-edb72834e09f
+2026-01-15T21:24:45.989Z  INFO 1 --- [ESP-Doorbell] [atcher-worker-3] c.t.e.d.m.service.MqttPublisherService   : Published message to topic: doorbell/98a316f5-1ca6-4971-8445-98a316f51ca6/stream/start, qos: 1
+2026-01-15T21:24:45.991Z  INFO 1 --- [ESP-Doorbell] [atcher-worker-3] c.t.e.d.streaming.api.StreamController   : Stream start successful for device 8038e490-4152-4f64-a70b-edb72834e09f
+2026-01-15T21:24:46.462Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-1] c.t.e.d.s.w.h.OutboundStreamHandler      : Outbound connection established for device 8038e490-4152-4f64-a70b-edb72834e09f, session 11cf605e
+2026-01-15T21:24:46.482Z  INFO 1 --- [ESP-Doorbell] [atcher-worker-3] c.t.e.d.s.w.h.OutboundStreamHandler      : User 188a96e6-eaab-4396-9bd6-bec9ed5a0668 authenticated for device 8038e490-4152-4f64-a70b-edb72834e09f stream
+2026-01-15T21:24:46.486Z  INFO 1 --- [ESP-Doorbell] [atcher-worker-1] c.t.e.d.s.w.h.OutboundStreamHandler      : Waiting for pipeline for device 8038e490-4152-4f64-a70b-edb72834e09f...
+2026-01-15T21:24:48.493Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] c.t.e.d.s.w.h.InboundStreamHandler       : Inbound connection attempt for device 98a316f5-1ca6-4971-8445-98a316f51ca6, session 3bdede89
+2026-01-15T21:24:48.576Z  INFO 1 --- [ESP-Doorbell] [atcher-worker-1] c.t.e.d.s.pipeline.DeviceStreamManager   : Starting pipeline for inbound connection from device 8038e490-4152-4f64-a70b-edb72834e09f
+2026-01-15T21:24:48.582Z  INFO 1 --- [ESP-Doorbell] [atcher-worker-1] c.t.e.d.s.pipeline.DeviceStreamManager   : Creating new pipeline for device 8038e490-4152-4f64-a70b-edb72834e09f
+2026-01-15T21:24:48.583Z  INFO 1 --- [ESP-Doorbell] [atcher-worker-1] c.t.e.d.s.p.DeviceTranscodingPipeline    : Starting GStreamer transcoding pipeline for device 8038e490-4152-4f64-a70b-edb72834e09f
+2026-01-15T21:24:48.590Z  INFO 1 --- [ESP-Doorbell] [atcher-worker-1] c.t.e.d.s.transcoding.GStreamerPipeline  : Starting GStreamer pipeline
+2026-01-15T21:24:48.759Z  INFO 1 --- [ESP-Doorbell] [atcher-worker-1] c.t.e.d.s.transcoding.GStreamerPipeline  : GStreamer pipeline: appsrc name=video_src !  jpegdec !  videoconvert !  vp8enc deadline=1 cpu-used=5 target-bitrate=1000000 keyframe-max-dist=30 threads=4 error-resilient=default !  queue max-size-time=0 max-size-bytes=0 max-size-buffers=3 !  mux.  appsrc name=audio_src !  aacparse !  avdec_aac !  audioconvert !  audioresample !  audio/x-raw,rate=48000,channels=2 !  opusenc bitrate=128000 frame-size=20 !  queue max-size-time=0 max-size-bytes=0 max-size-buffers=3 !  mux.  webmmux name=mux streamable=true !  appsink name=sink
+2026-01-15T21:24:48.973Z  INFO 1 --- [ESP-Doorbell] [atcher-worker-1] c.t.e.d.s.transcoding.GStreamerPipeline  : GStreamer pipeline started successfully
+2026-01-15T21:24:48.975Z  INFO 1 --- [ESP-Doorbell] [atcher-worker-1] c.t.e.d.s.p.DeviceTranscodingPipeline    : GStreamer pipeline started successfully for device 8038e490-4152-4f64-a70b-edb72834e09f
+2026-01-15T21:24:48.976Z  INFO 1 --- [ESP-Doorbell] [atcher-worker-1] c.t.e.d.s.pipeline.DeviceStreamManager   : Registered inbound session 3bdede89 for device 8038e490-4152-4f64-a70b-edb72834e09f
+2026-01-15T21:24:48.979Z  INFO 1 --- [ESP-Doorbell] [atcher-worker-1] c.t.e.d.s.w.h.InboundStreamHandler       : Device 98a316f5-1ca6-4971-8445-98a316f51ca6 authenticated and registered with UUID 8038e490-4152-4f64-a70b-edb72834e09f
+2026-01-15T21:24:49.004Z  INFO 1 --- [ESP-Doorbell] [atcher-worker-1] c.t.e.d.s.w.h.OutboundStreamHandler      : Pipeline became available for device 8038e490-4152-4f64-a70b-edb72834e09f
+2026-01-15T21:24:49.008Z  INFO 1 --- [ESP-Doorbell] [atcher-worker-1] c.t.e.d.s.pipeline.DeviceStreamManager   : Registered outbound session 11cf605e for device 8038e490-4152-4f64-a70b-edb72834e09f (total: 1)
+2026-01-15T21:24:49.962Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : First bytes (hex): 41 56 02 00 00 01 DC D5 FF F9 4C 80 20 3F FC 21
+2026-01-15T21:24:49.963Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : Magic=0x4156, Expected=0x4156, Type=2, PTS=122069
+2026-01-15T21:24:51.287Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : First bytes (hex): 41 56 01 00 00 01 DC E9 FF D8 FF E0 00 10 4A 46
+2026-01-15T21:24:51.288Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : Magic=0x4156, Expected=0x4156, Type=1, PTS=122089
+2026-01-15T21:24:51.316Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : First bytes (hex): 41 56 02 00 00 01 E0 55 FF F9 4C 80 1F 5F FC 21
+2026-01-15T21:24:51.317Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : Magic=0x4156, Expected=0x4156, Type=2, PTS=122965
+2026-01-15T21:24:51.325Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : First bytes (hex): 41 56 02 00 00 01 E0 95 FF F9 4C 80 1F 7F FC 21
+2026-01-15T21:24:51.325Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : Magic=0x4156, Expected=0x4156, Type=2, PTS=123029
+2026-01-15T21:24:51.329Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : First bytes (hex): 41 56 02 00 00 01 E0 AA FF F9 4C 80 1F 1F FC 21
+2026-01-15T21:24:51.329Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : Magic=0x4156, Expected=0x4156, Type=2, PTS=123050
+2026-01-15T21:24:51.332Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : First bytes (hex): 41 56 02 00 00 01 E0 C0 FF F9 4C 80 1F BF FC 21
+2026-01-15T21:24:51.335Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : Magic=0x4156, Expected=0x4156, Type=2, PTS=123072
+2026-01-15T21:24:51.362Z  INFO 1 --- [ESP-Doorbell] [atcher-worker-1] c.t.e.d.s.transcoding.GStreamerPipeline  : Init segment captured: 421 bytes
+2026-01-15T21:24:51.436Z  INFO 1 --- [ESP-Doorbell] [DefaultExecutor] c.t.e.d.s.w.h.OutboundStreamHandler      : Sending init segment (421 bytes) to new client for device 8038e490-4152-4f64-a70b-edb72834e09f (after 24 attempts)
+2026-01-15T21:24:51.440Z  INFO 1 --- [ESP-Doorbell] [DefaultExecutor] c.t.e.d.s.w.h.OutboundStreamHandler      : Subscribed to cluster flow for device 8038e490-4152-4f64-a70b-edb72834e09f
+2026-01-15T21:24:51.555Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-1] c.t.e.d.s.w.h.OutboundStreamHandler      : Outbound connection closed for device 8038e490-4152-4f64-a70b-edb72834e09f, session 11cf605e
+2026-01-15T21:24:51.556Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-1] c.t.e.d.s.pipeline.DeviceStreamManager   : Unregistered outbound session 11cf605e for device 8038e490-4152-4f64-a70b-edb72834e09f (remaining: 0)
+2026-01-15T21:24:51.589Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-3] c.t.e.d.s.w.h.OutboundStreamHandler      : Outbound connection established for device 8038e490-4152-4f64-a70b-edb72834e09f, session 6f35ae86
+2026-01-15T21:24:51.601Z  INFO 1 --- [ESP-Doorbell] [atcher-worker-3] c.t.e.d.s.w.h.OutboundStreamHandler      : User 188a96e6-eaab-4396-9bd6-bec9ed5a0668 authenticated for device 8038e490-4152-4f64-a70b-edb72834e09f stream
+2026-01-15T21:24:51.602Z  INFO 1 --- [ESP-Doorbell] [atcher-worker-3] c.t.e.d.s.pipeline.DeviceStreamManager   : Registered outbound session 6f35ae86 for device 8038e490-4152-4f64-a70b-edb72834e09f (total: 1)
+2026-01-15T21:24:51.603Z  INFO 1 --- [ESP-Doorbell] [atcher-worker-3] c.t.e.d.s.w.h.OutboundStreamHandler      : Sending init segment (421 bytes) to new client for device 8038e490-4152-4f64-a70b-edb72834e09f (after 0 attempts)
+2026-01-15T21:24:51.604Z  INFO 1 --- [ESP-Doorbell] [atcher-worker-3] c.t.e.d.s.w.h.OutboundStreamHandler      : Subscribed to cluster flow for device 8038e490-4152-4f64-a70b-edb72834e09f
+2026-01-15T21:24:52.659Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-4] c.t.e.d.s.w.h.OutboundStreamHandler      : Outbound connection established for device 8038e490-4152-4f64-a70b-edb72834e09f, session 153f794c
+2026-01-15T21:24:52.667Z  INFO 1 --- [ESP-Doorbell] [atcher-worker-3] c.t.e.d.s.w.h.OutboundStreamHandler      : User 188a96e6-eaab-4396-9bd6-bec9ed5a0668 authenticated for device 8038e490-4152-4f64-a70b-edb72834e09f stream
+2026-01-15T21:24:52.667Z  INFO 1 --- [ESP-Doorbell] [atcher-worker-3] c.t.e.d.s.pipeline.DeviceStreamManager   : Registered outbound session 153f794c for device 8038e490-4152-4f64-a70b-edb72834e09f (total: 2)
+2026-01-15T21:24:52.668Z  INFO 1 --- [ESP-Doorbell] [atcher-worker-3] c.t.e.d.s.w.h.OutboundStreamHandler      : Sending init segment (421 bytes) to new client for device 8038e490-4152-4f64-a70b-edb72834e09f (after 0 attempts)
+2026-01-15T21:24:52.670Z  INFO 1 --- [ESP-Doorbell] [atcher-worker-3] c.t.e.d.s.w.h.OutboundStreamHandler      : Subscribed to cluster flow for device 8038e490-4152-4f64-a70b-edb72834e09f
+2026-01-15T21:24:52.980Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : First bytes (hex): 41 56 01 00 00 01 E0 0A FF D8 FF E0 00 10 4A 46
+2026-01-15T21:24:52.981Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : Magic=0x4156, Expected=0x4156, Type=1, PTS=122890
+2026-01-15T21:24:53.003Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : First bytes (hex): 41 56 02 00 00 01 E6 EA FF F9 4C 80 1F FF FC 21
+2026-01-15T21:24:53.003Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : Magic=0x4156, Expected=0x4156, Type=2, PTS=124650
+2026-01-15T21:24:53.008Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : First bytes (hex): 41 56 02 00 00 01 E7 2A FF F9 4C 80 1F BF FC 21
+2026-01-15T21:24:53.009Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : Magic=0x4156, Expected=0x4156, Type=2, PTS=124714
+2026-01-15T21:24:53.010Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : First bytes (hex): 41 56 02 00 00 01 E7 40 FF F9 4C 80 20 1F FC 21
+2026-01-15T21:24:53.011Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : Magic=0x4156, Expected=0x4156, Type=2, PTS=124736
+2026-01-15T21:24:53.013Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : First bytes (hex): 41 56 02 00 00 01 E7 55 FF F9 4C 80 21 DF FC 21
+2026-01-15T21:24:53.013Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : Magic=0x4156, Expected=0x4156, Type=2, PTS=124757
+2026-01-15T21:24:54.656Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-1] c.t.e.d.s.w.h.OutboundStreamHandler      : Outbound connection established for device 8038e490-4152-4f64-a70b-edb72834e09f, session 7bdf8071
+2026-01-15T21:24:54.665Z  INFO 1 --- [ESP-Doorbell] [atcher-worker-3] c.t.e.d.s.w.h.OutboundStreamHandler      : User 188a96e6-eaab-4396-9bd6-bec9ed5a0668 authenticated for device 8038e490-4152-4f64-a70b-edb72834e09f stream
+2026-01-15T21:24:54.665Z  INFO 1 --- [ESP-Doorbell] [atcher-worker-3] c.t.e.d.s.pipeline.DeviceStreamManager   : Registered outbound session 7bdf8071 for device 8038e490-4152-4f64-a70b-edb72834e09f (total: 3)
+2026-01-15T21:24:54.666Z  INFO 1 --- [ESP-Doorbell] [atcher-worker-3] c.t.e.d.s.w.h.OutboundStreamHandler      : Sending init segment (421 bytes) to new client for device 8038e490-4152-4f64-a70b-edb72834e09f (after 0 attempts)
+2026-01-15T21:24:54.667Z  INFO 1 --- [ESP-Doorbell] [atcher-worker-3] c.t.e.d.s.w.h.OutboundStreamHandler      : Subscribed to cluster flow for device 8038e490-4152-4f64-a70b-edb72834e09f
+2026-01-15T21:24:54.932Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : First bytes (hex): 41 56 01 00 00 01 E6 9A FF D8 FF E0 00 10 4A 46
+2026-01-15T21:24:54.932Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : Magic=0x4156, Expected=0x4156, Type=1, PTS=124570
+2026-01-15T21:24:54.953Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : First bytes (hex): 41 56 02 00 00 01 EE 95 FF F9 4C 80 23 1F FC 21
+2026-01-15T21:24:54.953Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : Magic=0x4156, Expected=0x4156, Type=2, PTS=126613
+2026-01-15T21:24:54.957Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : First bytes (hex): 41 56 02 00 00 01 EE C0 FF F9 4C 80 1F 3F FC 21
+2026-01-15T21:24:54.957Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : Magic=0x4156, Expected=0x4156, Type=2, PTS=126656
+2026-01-15T21:24:54.962Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : First bytes (hex): 41 56 02 00 00 01 EE D5 FF F9 4C 80 1E BF FC 21
+2026-01-15T21:24:54.962Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : Magic=0x4156, Expected=0x4156, Type=2, PTS=126677
+2026-01-15T21:24:54.964Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : First bytes (hex): 41 56 02 00 00 01 EE EA FF F9 4C 80 1D DF FC 21
+2026-01-15T21:24:54.965Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : Magic=0x4156, Expected=0x4156, Type=2, PTS=126698
+2026-01-15T21:24:55.693Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : First bytes (hex): 41 56 01 00 00 01 EE 19 FF D8 FF E0 00 10 4A 46
+2026-01-15T21:24:55.693Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : Magic=0x4156, Expected=0x4156, Type=1, PTS=126489
+2026-01-15T21:24:55.719Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : First bytes (hex): 41 56 02 00 00 01 F0 15 FF F9 4C 80 23 3F FC 21
+2026-01-15T21:24:55.720Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : Magic=0x4156, Expected=0x4156, Type=2, PTS=126997
+2026-01-15T21:24:55.723Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : First bytes (hex): 41 56 02 00 00 01 F1 C0 FF F9 4C 80 22 1F FC 21
+2026-01-15T21:24:55.726Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : Magic=0x4156, Expected=0x4156, Type=2, PTS=127424
+2026-01-15T21:24:55.728Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : First bytes (hex): 41 56 02 00 00 01 F1 D5 FF F9 4C 80 1E FF FC 21
+2026-01-15T21:24:55.728Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : Magic=0x4156, Expected=0x4156, Type=2, PTS=127445
+2026-01-15T21:24:55.731Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : First bytes (hex): 41 56 02 00 00 01 F1 EA FF F9 4C 80 19 FF FC 21
+2026-01-15T21:24:55.731Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : Magic=0x4156, Expected=0x4156, Type=2, PTS=127466
+2026-01-15T21:24:56.131Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : First bytes (hex): 41 56 01 00 00 01 F1 37 FF D8 FF E0 00 10 4A 46
+2026-01-15T21:24:56.132Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : Magic=0x4156, Expected=0x4156, Type=1, PTS=127287
+2026-01-15T21:24:56.153Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : First bytes (hex): 41 56 02 00 00 01 F3 2A FF F9 4C 80 1F 9F FC 21
+2026-01-15T21:24:56.153Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : Magic=0x4156, Expected=0x4156, Type=2, PTS=127786
+2026-01-15T21:24:56.156Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : First bytes (hex): 41 56 02 00 00 01 F3 80 FF F9 4C 80 20 3F FC 21
+2026-01-15T21:24:56.156Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : Magic=0x4156, Expected=0x4156, Type=2, PTS=127872
+2026-01-15T21:24:56.161Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : First bytes (hex): 41 56 02 00 00 01 F3 95 FF F9 4C 80 20 1F FC 21
+2026-01-15T21:24:56.161Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : Magic=0x4156, Expected=0x4156, Type=2, PTS=127893
+2026-01-15T21:24:56.163Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : First bytes (hex): 41 56 02 00 00 01 F3 AA FF F9 4C 80 19 FF FC 21
+2026-01-15T21:24:56.165Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : Magic=0x4156, Expected=0x4156, Type=2, PTS=127914
+2026-01-15T21:24:57.540Z  INFO 1 --- [ESP-Doorbell] [tor-tcp-epoll-1] c.t.e.d.streaming.api.StreamController   : Stream stop request from user 188a96e6-eaab-4396-9bd6-bec9ed5a0668 for device 8038e490-4152-4f64-a70b-edb72834e09f
+2026-01-15T21:24:57.560Z  INFO 1 --- [ESP-Doorbell] [atcher-worker-3] c.t.e.d.m.service.MqttPublisherService   : Published message to topic: doorbell/98a316f5-1ca6-4971-8445-98a316f51ca6/stream/stop, qos: 1
+2026-01-15T21:24:58.503Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : First bytes (hex): 41 56 01 00 00 01 F2 C8 FF D8 FF E0 00 10 4A 46
+2026-01-15T21:24:58.504Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] StreamPacketParser                       : Magic=0x4156, Expected=0x4156, Type=1, PTS=127688
+2026-01-15T21:24:58.508Z  INFO 1 --- [ESP-Doorbell] [or-http-epoll-2] c.t.e.d.s.w.h.InboundStreamHandler       : Inbound connection closed unexpectedly for device 98a316f5-1ca6-4971-8445-98a316f51ca6
+2026-01-15T21:24:58.509Z  INFO 1 --- [ESP-Doorbell] [oundedElastic-1] c.t.e.d.s.w.h.InboundStreamHandler       : Inbound handler: connection closed for device 98a316f5-1ca6-4971-8445-98a316f51ca6
+2026-01-15T21:24:58.515Z  INFO 1 --- [ESP-Doorbell] [oundedElastic-1] c.t.e.d.s.w.h.InboundStreamHandler       : Inbound connection closed for device 98a316f5-1ca6-4971-8445-98a316f51ca6, session 3bdede89
+2026-01-15T21:24:58.516Z  INFO 1 --- [ESP-Doorbell] [atcher-worker-3] c.t.e.d.s.pipeline.DeviceStreamManager   : Unregistered inbound session 3bdede89 for device 8038e490-4152-4f64-a70b-edb72834e09f
+2026-01-15T21:25:13.747Z  INFO 1 --- [ESP-Doorbell] [atcher-worker-2] c.t.e.d.m.h.DeviceHeartbeatHandler       : Heartbeat processed for device 98a316f5-1ca6-4971-8445-98a316f51ca6
+2026-01-15T21:25:43.769Z  INFO 1 --- [ESP-Doorbell] [atcher-worker-2] c.t.e.d.m.h.DeviceHeartbeatHandler       : Heartbeat processed for device 98a316f5-1ca6-4971-8445-98a316f51ca6
+2026-01-15T21:25:46.345Z  INFO 1 --- [ESP-Doorbell] [atcher-worker-1] c.t.e.d.m.h.DeviceHeartbeatHandler       : Heartbeat processed for device 98a316f5-1ca6-4971-8445-98a316f51ca6
+2026-01-15T21:26:13.751Z  INFO 1 --- [ESP-Doorbell] [atcher-worker-1] c.t.e.d.m.h.DeviceHeartbeatHandler       : Heartbeat processed for device 98a316f5-1ca6-4971-8445-98a316f51ca6
