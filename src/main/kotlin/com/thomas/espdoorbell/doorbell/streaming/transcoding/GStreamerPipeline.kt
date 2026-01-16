@@ -265,64 +265,69 @@ class GStreamerPipeline(
 
     private suspend fun processWebMData(data: ByteArray) =
         withContext(Dispatchers.IO) {
-            accumulator.write(data)
-            val bytes = accumulator.toByteArray()
+            try {
+                accumulator.write(data)
+                val bytes = accumulator.toByteArray()
 
-            var lastClusterEnd = 0
-            var pos = 0
+                var lastClusterEnd = 0
+                var pos = 0
 
-            while (pos < bytes.size) {
-                val elementIdResult = readElementId(bytes, pos)
-                if (elementIdResult == null) {
-                    break
-                }
-                val (elementId, idLength) = elementIdResult
-
-                val sizeResult = readVint(bytes, pos + idLength)
-                if (sizeResult == null) {
-                    break
-                }
-                val (elementSize, sizeLength) = sizeResult
-
-                val elementHeaderLength = idLength + sizeLength
-                val isCluster = elementId.contentEquals(CLUSTER_ID)
-                val isUnknownSize = elementSize == -1L
-
-                if (isCluster) {
-                    if (initSegment == null && pos > 0) {
-                        initSegment = bytes.copyOfRange(0, pos)
-                        logger.info("Init segment captured: {} bytes", initSegment!!.size)
-                        lastClusterEnd = pos
-                    } else if (pos > lastClusterEnd && initSegment != null) {
-                        emitCluster(bytes.copyOfRange(lastClusterEnd, pos))
-                        lastClusterEnd = pos
+                while (pos < bytes.size) {
+                    val elementIdResult = readElementId(bytes, pos)
+                    if (elementIdResult == null) {
+                        break
                     }
+                    val (elementId, idLength) = elementIdResult
 
-                    if (isUnknownSize) {
-                        pos += elementHeaderLength
-                    } else {
-                        val totalElementLength = elementHeaderLength + elementSize.toInt()
-                        if (pos + totalElementLength > bytes.size) {
-                            break
+                    val sizeResult = readVint(bytes, pos + idLength)
+                    if (sizeResult == null) {
+                        break
+                    }
+                    val (elementSize, sizeLength) = sizeResult
+
+                    val elementHeaderLength = idLength + sizeLength
+                    val isCluster = elementId.contentEquals(CLUSTER_ID)
+                    val isUnknownSize = elementSize == -1L
+
+                    if (isCluster) {
+                        if (initSegment == null && pos > 0) {
+                            initSegment = bytes.copyOfRange(0, pos)
+                            logger.info("Init segment captured: {} bytes", initSegment!!.size)
+                            lastClusterEnd = pos
+                        } else if (pos > lastClusterEnd && initSegment != null) {
+                            emitCluster(bytes.copyOfRange(lastClusterEnd, pos))
+                            lastClusterEnd = pos
                         }
-                        pos += totalElementLength
-                    }
-                } else {
-                    if (isUnknownSize) {
-                        pos += elementHeaderLength
-                    } else {
-                        val totalElementLength = elementHeaderLength + elementSize.toInt()
-                        if (pos + totalElementLength > bytes.size) {
-                            break
+
+                        if (isUnknownSize) {
+                            pos += elementHeaderLength
+                        } else {
+                            val totalElementLength = elementHeaderLength + elementSize.toInt()
+                            if (pos + totalElementLength > bytes.size) {
+                                break
+                            }
+                            pos += totalElementLength
                         }
-                        pos += totalElementLength
+                    } else {
+                        if (isUnknownSize) {
+                            pos += elementHeaderLength
+                        } else {
+                            val totalElementLength = elementHeaderLength + elementSize.toInt()
+                            if (pos + totalElementLength > bytes.size) {
+                                break
+                            }
+                            pos += totalElementLength
+                        }
                     }
                 }
-            }
 
-            accumulator.reset()
-            if (lastClusterEnd < bytes.size) {
-                accumulator.write(bytes, lastClusterEnd, bytes.size - lastClusterEnd)
+                accumulator.reset()
+                if (lastClusterEnd < bytes.size && lastClusterEnd >= 0) {
+                    accumulator.write(bytes, lastClusterEnd, bytes.size - lastClusterEnd)
+                }
+            } catch (e: Exception) {
+                logger.error("Error processing WebM data", e)
+                accumulator.reset()
             }
         }
 

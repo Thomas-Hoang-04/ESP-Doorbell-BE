@@ -155,7 +155,7 @@ class OutboundStreamHandler(
         logger.info("Subscribed to cluster flow for device {}", deviceId)
 
         clusterFlow.collect { clusterData ->
-            logger.debug("Sending cluster ({} bytes) to device {}", clusterData.size, deviceId)
+            logger.info("Sending cluster ({} bytes) to device {}", clusterData.size, deviceId)
             emit(WebSocketMessage(WebSocketMessage.Type.BINARY, dataBufferFactory.wrap(clusterData)))
         }
     }
