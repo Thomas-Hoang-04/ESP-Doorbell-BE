@@ -136,27 +136,10 @@ class GStreamerPipeline(
             }
 
             logger.info("GStreamer pipeline started successfully")
+        } catch (e: Exception) {
+            logger.error("Failed to start GStreamer pipeline", e)
             stop()
             throw e
-        }
-    }
-
-    private fun handleNewSample(sink: AppSink) {
-        val sample = sink.pullSample() ?: return
-        try {
-            val buffer = sample.buffer
-            if (buffer != null) {
-                val size = buffer.size
-                if (size > 0) {
-                    val data = ByteArray(size.toInt())
-                    buffer.extractDeep(0, data)
-                    clusterCount++
-                    // logger.debug("Emitting cluster {}: {} bytes", clusterCount, size) // verbose
-                    _clusterFlow.tryEmit(data)
-                }
-            }
-        } finally {
-            sample.dispose()
         }
     }
 
