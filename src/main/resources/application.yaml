@@ -8,6 +8,10 @@ spring:
   jackson:
     time-zone: UTC
 
+  http:
+    codecs:
+      max-in-memory-size: 16MB
+
 server:
   forward-headers-strategy: framework
 

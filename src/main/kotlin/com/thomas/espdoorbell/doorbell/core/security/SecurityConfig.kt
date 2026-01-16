@@ -44,6 +44,7 @@ class SecurityConfig(
                 "/actuator/info",
                 "/api/auth/**",
                 "/api/verify/**",
+                "/api/events/bell-ring",
                 "/ws/stream/**"
             ).permitAll()
             it.anyExchange().authenticated()

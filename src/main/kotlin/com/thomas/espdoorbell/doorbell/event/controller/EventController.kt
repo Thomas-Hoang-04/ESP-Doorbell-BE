@@ -15,7 +15,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
-import org.springframework.http.codec.multipart.FilePart
 import org.springframework.security.access.AccessDeniedException
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder
@@ -82,17 +81,17 @@ class EventController(
     @PostMapping(value = ["/bell-ring"], consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
     suspend fun handleBellRing(
         @RequestParam("image") image: MultipartFile,
-        @RequestParam("device_id") deviceIdStr: String,
+        @RequestParam("device_id") deviceId: String,
         @RequestParam("device_key") deviceKey: String
     ): EventDto {
-        val device = deviceRepository.findByDeviceId(deviceIdStr)
+        val device = deviceRepository.findByDeviceId(deviceId)
             ?: throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unknown device")
 
         if (!passwordEncoder.matches(deviceKey, device.deviceKey)) {
             throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid device key")
         }
 
-        logger.info("Bell ring with image received from device: $deviceIdStr")
+        logger.info("Bell ring with image received from device: $deviceId")
 
         // 1. Create the event
         val event = eventService.createEvent(EventCreateRequest(
