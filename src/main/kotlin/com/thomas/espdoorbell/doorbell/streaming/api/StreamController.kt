@@ -5,6 +5,7 @@ import com.thomas.espdoorbell.doorbell.mqtt.service.MqttPublisherService
 import com.thomas.espdoorbell.doorbell.shared.principal.UserPrincipal
 import com.thomas.espdoorbell.doorbell.streaming.api.dto.StreamResponse
 import com.thomas.espdoorbell.doorbell.streaming.config.StreamingProperties
+import com.thomas.espdoorbell.doorbell.streaming.pipeline.DeviceStreamManager
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -18,7 +19,8 @@ import java.util.UUID
 class StreamController(
     private val mqttPublisherService: MqttPublisherService,
     private val deviceService: DeviceService,
-    private val streamingProperties: StreamingProperties
+    private val streamingProperties: StreamingProperties,
+    private val deviceStreamManager: DeviceStreamManager
 ) {
     private val logger = LoggerFactory.getLogger(StreamController::class.java)
 
@@ -87,9 +89,11 @@ class StreamController(
         }
 
         val published = mqttPublisherService.publishStreamStop(device.deviceIdentifier)
+
+        deviceStreamManager.stopPipeline(deviceId)
+
         if (!published) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(StreamResponse(success = false, message = "Failed to send command"))
+            logger.warn("Failed to send MQTT stop command but pipeline was stopped locally")
         }
 
         return ResponseEntity.ok(StreamResponse(success = true))
