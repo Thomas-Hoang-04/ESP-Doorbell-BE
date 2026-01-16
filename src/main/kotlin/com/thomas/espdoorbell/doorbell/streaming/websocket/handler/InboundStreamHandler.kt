@@ -81,7 +81,7 @@ class InboundStreamHandler(
 
                             val ptsMicros = packet.ptsMillis * 1000L
 
-                            logger.debug(
+                            logger.info(
                                 "Received {} packet from device {}: pts={}ms, size={} bytes",
                                 packet.type.name,
                                 deviceIdentifier,

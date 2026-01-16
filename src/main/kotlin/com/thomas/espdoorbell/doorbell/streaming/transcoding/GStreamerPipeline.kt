@@ -159,6 +159,7 @@ class GStreamerPipeline(
             aacparse ! 
             avdec_aac ! 
             audioconvert ! 
+            audio/x-raw,rate=16000,channels=2 ! 
             audioresample ! 
             audio/x-raw,rate=48000,channels=2 ! 
             opusenc bitrate=$audioBitrate frame-size=${gstConfig.opusFrameSizeMs} ! 
@@ -184,11 +185,11 @@ class GStreamerPipeline(
         val src = videoAppSrc ?: return
 
         try {
-            // Normalize PTS
             if (videoBasePts == null) {
                 videoBasePts = pts
+                logger.info("First video frame received: {} bytes, pts={}", jpegData.size, pts)
             }
-            val normalizedPts = (pts - (videoBasePts ?: 0)) * 1_000_000 // Convert ms to ns
+            val normalizedPts = (pts - (videoBasePts ?: 0)) * 1_000_000
 
             val buffer = Buffer(jpegData.size)
             buffer.map(true).put(ByteBuffer.wrap(jpegData))
@@ -199,7 +200,10 @@ class GStreamerPipeline(
             if (result != FlowReturn.OK) {
                 logger.warn("Video buffer push returned: {}", result)
             } else {
-                videoFrameCount.incrementAndGet()
+                val count = videoFrameCount.incrementAndGet()
+                if (count % 30 == 0L) {
+                    logger.info("Video frames fed: {}, size={} bytes", count, jpegData.size)
+                }
             }
         } catch (e: Exception) {
             logger.error("Error feeding video frame", e)
@@ -211,11 +215,11 @@ class GStreamerPipeline(
         val src = audioAppSrc ?: return
 
         try {
-            // Normalize PTS
             if (audioBasePts == null) {
                 audioBasePts = pts
+                logger.info("First audio frame received: {} bytes, pts={}", aacData.size, pts)
             }
-            val normalizedPts = (pts - (audioBasePts ?: 0)) * 1_000_000 // Convert ms to ns
+            val normalizedPts = (pts - (audioBasePts ?: 0)) * 1_000_000
 
             val buffer = Buffer(aacData.size)
             buffer.map(true).put(ByteBuffer.wrap(aacData))
@@ -226,7 +230,10 @@ class GStreamerPipeline(
             if (result != FlowReturn.OK) {
                 logger.warn("Audio buffer push returned: {}", result)
             } else {
-                audioFrameCount.incrementAndGet()
+                val count = audioFrameCount.incrementAndGet()
+                if (count % 100 == 0L) {
+                    logger.info("Audio frames fed: {}, size={} bytes", count, aacData.size)
+                }
             }
         } catch (e: Exception) {
             logger.error("Error feeding audio frame", e)
@@ -365,7 +372,10 @@ class GStreamerPipeline(
 
     private suspend fun emitCluster(data: ByteArray) {
         clusterCount++
-        logger.debug("Emitting cluster {}: {} bytes", clusterCount, data.size)
+        if (clusterCount <= 5 || clusterCount % 10 == 0) {
+            logger.info("Emitting cluster {}: {} bytes (video={}, audio={})", 
+                clusterCount, data.size, videoFrameCount.get(), audioFrameCount.get())
+        }
         _clusterFlow.emit(data)
     }
 
