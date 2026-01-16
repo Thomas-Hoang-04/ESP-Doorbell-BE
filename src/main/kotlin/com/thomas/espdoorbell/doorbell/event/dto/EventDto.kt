@@ -2,7 +2,7 @@ package com.thomas.espdoorbell.doorbell.event.dto
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import java.time.OffsetDateTime
-import java.util.*
+import java.util.UUID
 
 data class EventDto(
     val id: UUID,
@@ -13,5 +13,7 @@ data class EventDto(
     @field:JsonProperty("event_code")
     val eventTypeCode: String,
     @field:JsonProperty("event_label")
-    val eventTypeLabel: String
+    val eventTypeLabel: String,
+    @field:JsonProperty("images")
+    val images: List<EventImageDto>? = null
 )

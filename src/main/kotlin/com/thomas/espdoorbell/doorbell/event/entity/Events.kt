@@ -1,6 +1,7 @@
 package com.thomas.espdoorbell.doorbell.event.entity
 
 import com.thomas.espdoorbell.doorbell.event.dto.EventDto
+import com.thomas.espdoorbell.doorbell.event.dto.EventImageDto
 import com.thomas.espdoorbell.doorbell.shared.types.EventType
 import org.springframework.data.annotation.CreatedDate
 import org.springframework.data.annotation.Id
@@ -33,11 +34,12 @@ class Events(
     @Column("created_at")
     val createdAt: OffsetDateTime? = null
 ) {
-    fun toDto(): EventDto = EventDto(
+    fun toDto(images: List<EventImageDto>? = null): EventDto = EventDto(
         id = id!!,
         deviceId = deviceId,
         occurredAt = eventTimestamp,
         eventTypeCode = eventType.name,
-        eventTypeLabel = eventType.toDisplayName()
+        eventTypeLabel = eventType.toDisplayName(),
+        images = images
     )
 }

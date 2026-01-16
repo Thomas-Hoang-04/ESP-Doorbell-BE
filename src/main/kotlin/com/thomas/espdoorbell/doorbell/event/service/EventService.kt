@@ -1,8 +1,12 @@
 package com.thomas.espdoorbell.doorbell.event.service
 
+import com.thomas.espdoorbell.doorbell.core.config.AppProperties
 import com.thomas.espdoorbell.doorbell.core.exception.DomainException
 import com.thomas.espdoorbell.doorbell.event.dto.EventDto
+import com.thomas.espdoorbell.doorbell.event.dto.EventImageDto
+import com.thomas.espdoorbell.doorbell.event.entity.EventImage
 import com.thomas.espdoorbell.doorbell.event.entity.Events
+import com.thomas.espdoorbell.doorbell.event.repository.EventImageRepository
 import com.thomas.espdoorbell.doorbell.event.repository.EventRepository
 import com.thomas.espdoorbell.doorbell.event.request.EventCreateRequest
 import kotlinx.coroutines.flow.toList
@@ -13,7 +17,10 @@ import java.util.*
 
 @Service
 class EventService(
-    private val eventRepository: EventRepository
+    private val eventRepository: EventRepository,
+    private val eventImageRepository: EventImageRepository,
+    private val storageService: StorageService,
+    private val appProperties: AppProperties
 ) {
     @Transactional(readOnly = true)
     suspend fun listEvents(): List<EventDto> =
@@ -39,7 +46,12 @@ class EventService(
     suspend fun getEvent(eventId: UUID): EventDto {
         val event = eventRepository.findById(eventId)
             ?: throw DomainException.EntityNotFound.Event("id", eventId.toString())
-        return event.toDto()
+        
+        val images = eventImageRepository.findAllByEventId(eventId)
+            .toList()
+            .map { it.toDto(appProperties.api.baseUrl) }
+            
+        return event.toDto(images)
     }
 
     suspend fun getEventCountByDevice(deviceId: UUID): Long =
@@ -56,9 +68,13 @@ class EventService(
     }
 
     @Transactional
-    suspend fun deleteEvent(eventId: UUID) {
-        eventRepository.findById(eventId)
-            ?: throw DomainException.EntityNotFound.Event("id", eventId.toString())
-        eventRepository.deleteById(eventId)
+    suspend fun saveEventImage(eventId: UUID, imageBytes: ByteArray): EventImageDto {
+        val filePath = storageService.saveEventImage(eventId, imageBytes)
+        val eventImage = EventImage(
+            eventId = eventId,
+            filePath = filePath
+        )
+        val saved = eventImageRepository.save(eventImage)
+        return saved.toDto(appProperties.api.baseUrl)
     }
 }

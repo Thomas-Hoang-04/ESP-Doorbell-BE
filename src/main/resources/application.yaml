@@ -19,3 +19,9 @@ streaming:
     cpu-used: 5
     opus-frame-size-ms: 20
     keyframe-max-dist: 30
+
+app:
+  storage:
+    upload-dir: uploads
+  api:
+    base-url: https://doorbell-thomas.site
