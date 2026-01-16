@@ -151,7 +151,7 @@ class GStreamerPipeline(
             appsrc name=video_src ! 
             jpegdec ! 
             videoconvert ! 
-            vp8enc deadline=1 cpu-used=${gstConfig.cpuUsed} target-bitrate=$videoBitrate keyframe-max-dist=30 threads=4 error-resilient=default ! 
+            vp8enc deadline=1 cpu-used=${gstConfig.cpuUsed} target-bitrate=$videoBitrate keyframe-max-dist=5 threads=4 error-resilient=default ! 
             queue max-size-time=0 max-size-bytes=0 max-size-buffers=200 ! 
             mux.
             
