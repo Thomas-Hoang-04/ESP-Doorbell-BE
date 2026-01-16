@@ -114,7 +114,8 @@ class EventController(
             notificationService.sendBroadcastNotification(
                 userIds = usersWithAccess,
                 title = "Doorbell Alert",
-                body = "Someone is at the ${device.displayName}!"
+                body = "Someone is at the ${device.displayName}!",
+                data = mapOf("event_id" to event.id.toString())
             )
         }
 

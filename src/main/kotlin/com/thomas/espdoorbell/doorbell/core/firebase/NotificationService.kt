@@ -41,7 +41,13 @@ class NotificationService(
         logger.info("Saved FCM token for user $userId")
     }
 
-    suspend fun sendNotification(userId: UUID, title: String, body: String): Int {
+    @Suppress("unused")
+    suspend fun sendNotification(
+        userId: UUID,
+        title: String,
+        body: String,
+        data: Map<String, String> = emptyMap()
+    ): Int {
         val tokens = userFcmTokenRepository.findByUserId(userId).toList()
         if (tokens.isEmpty()) {
             logger.warn("No FCM tokens found for user $userId")
@@ -50,7 +56,7 @@ class NotificationService(
 
         var successCount = 0
         for (fcmToken in tokens) {
-            val success = sendToToken(fcmToken.token, title, body)
+            val success = sendToToken(fcmToken.token, title, body, data)
             if (success) {
                 successCount++
             } else {
@@ -61,7 +67,12 @@ class NotificationService(
         return successCount
     }
 
-    suspend fun sendBroadcastNotification(userIds: List<UUID>, title: String, body: String): Int {
+    suspend fun sendBroadcastNotification(
+        userIds: List<UUID>,
+        title: String,
+        body: String,
+        data: Map<String, String> = emptyMap()
+    ): Int {
         if (userIds.isEmpty()) return 0
 
         val tokens = userFcmTokenRepository.findByUserIdIn(userIds).toList()
@@ -74,7 +85,7 @@ class NotificationService(
 
         var successCount = 0
         for (token in uniqueTokens) {
-            val success = sendToToken(token, title, body)
+            val success = sendToToken(token, title, body, data)
             if (success) {
                 successCount++
             } else {
@@ -86,12 +97,21 @@ class NotificationService(
         return successCount
     }
 
-    private suspend fun sendToToken(token: String, title: String, body: String): Boolean {
+    private suspend fun sendToToken(
+        token: String,
+        title: String,
+        body: String,
+        data: Map<String, String>
+    ): Boolean {
         return withContext(Dispatchers.IO) {
             try {
+                val payload = mutableMapOf("title" to title, "body" to body)
+                if (data.isNotEmpty()) {
+                    payload.putAll(data)
+                }
                 val message = Message.builder()
                     .setToken(token)
-                    .putAllData(mapOf("title" to title, "body" to body))
+                    .putAllData(payload)
                     .build()
 
                 firebaseMessaging.send(message)

@@ -43,7 +43,7 @@ class BellEventHandler(
 
             logger.info("Bell pressed on device: ${message.deviceId}")
 
-            eventService.createEvent(EventCreateRequest(
+            val event = eventService.createEvent(EventCreateRequest(
                 deviceId = device.id!!,
                 eventType = EventType.DOORBELL_RING
             ))
@@ -53,7 +53,8 @@ class BellEventHandler(
                 notificationService.sendBroadcastNotification(
                     userIds = usersWithAccess,
                     title = "Doorbell Alert",
-                    body = "Someone is at the ${device.displayName}!"
+                    body = "Someone is at the ${device.displayName}!",
+                    data = mapOf("event_id" to event.id.toString())
                 )
             }
         } catch (e: Exception) {
