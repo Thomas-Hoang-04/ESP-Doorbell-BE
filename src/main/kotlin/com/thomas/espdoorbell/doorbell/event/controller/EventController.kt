@@ -18,8 +18,10 @@ import org.springframework.http.MediaType
 import org.springframework.security.access.AccessDeniedException
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder
+import kotlinx.coroutines.reactive.awaitSingle
+import org.springframework.core.io.buffer.DataBufferUtils
+import org.springframework.http.codec.multipart.FilePart
 import org.springframework.web.bind.annotation.*
-import org.springframework.web.multipart.MultipartFile
 import org.springframework.web.server.ResponseStatusException
 import java.time.OffsetDateTime
 import java.util.*
@@ -80,9 +82,9 @@ class EventController(
 
     @PostMapping(value = ["/bell-ring"], consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
     suspend fun handleBellRing(
-        @RequestParam("image") image: MultipartFile,
-        @RequestParam("device_id") deviceId: String,
-        @RequestParam("device_key") deviceKey: String
+        @RequestPart("image") image: FilePart,
+        @RequestPart("device_id") deviceId: String,
+        @RequestPart("device_key") deviceKey: String
     ): EventDto {
         val device = deviceRepository.findByDeviceId(deviceId)
             ?: throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unknown device")
@@ -99,8 +101,12 @@ class EventController(
             eventType = EventType.DOORBELL_RING
         ))
 
-        // 2. Save the image
-        eventService.saveEventImage(event.id, image.bytes)
+        // 2. Read image bytes from FilePart and save
+        val dataBuffer = DataBufferUtils.join(image.content()).awaitSingle()
+        val imageBytes = ByteArray(dataBuffer.readableByteCount())
+        dataBuffer.read(imageBytes)
+        DataBufferUtils.release(dataBuffer)
+        eventService.saveEventImage(event.id, imageBytes)
 
         // 3. Send notifications
         val usersWithAccess = userDeviceAccessRepository.findAllByDevice(device.id).map { it.user }.toList()
