@@ -264,8 +264,24 @@ class GStreamerPipeline(
             var lastClusterEnd = 0
             var pos = 0
 
-            while (pos <= bytes.size - 4) {
-                if (isClusterStart(bytes, pos)) {
+            while (pos < bytes.size) {
+                val elementIdResult = readElementId(bytes, pos)
+                if (elementIdResult == null) {
+                    break
+                }
+                val (elementId, idLength) = elementIdResult
+
+                val sizeResult = readVint(bytes, pos + idLength)
+                if (sizeResult == null) {
+                    break
+                }
+                val (elementSize, sizeLength) = sizeResult
+
+                val elementHeaderLength = idLength + sizeLength
+                val isCluster = elementId.contentEquals(CLUSTER_ID)
+                val isUnknownSize = elementSize == -1L
+
+                if (isCluster) {
                     if (initSegment == null && pos > 0) {
                         initSegment = bytes.copyOfRange(0, pos)
                         logger.info("Init segment captured: {} bytes", initSegment!!.size)
@@ -274,8 +290,27 @@ class GStreamerPipeline(
                         emitCluster(bytes.copyOfRange(lastClusterEnd, pos))
                         lastClusterEnd = pos
                     }
+
+                    if (isUnknownSize) {
+                        pos += elementHeaderLength
+                    } else {
+                        val totalElementLength = elementHeaderLength + elementSize.toInt()
+                        if (pos + totalElementLength > bytes.size) {
+                            break
+                        }
+                        pos += totalElementLength
+                    }
+                } else {
+                    if (isUnknownSize) {
+                        pos += elementHeaderLength
+                    } else {
+                        val totalElementLength = elementHeaderLength + elementSize.toInt()
+                        if (pos + totalElementLength > bytes.size) {
+                            break
+                        }
+                        pos += totalElementLength
+                    }
                 }
-                pos++
             }
 
             accumulator.reset()
@@ -284,12 +319,48 @@ class GStreamerPipeline(
             }
         }
 
-    private fun isClusterStart(data: ByteArray, pos: Int): Boolean {
-        if (pos + 4 > data.size) return false
-        return data[pos] == CLUSTER_ID[0] &&
-               data[pos + 1] == CLUSTER_ID[1] &&
-               data[pos + 2] == CLUSTER_ID[2] &&
-               data[pos + 3] == CLUSTER_ID[3]
+    private fun readElementId(data: ByteArray, pos: Int): Pair<ByteArray, Int>? {
+        if (pos >= data.size) return null
+        val firstByte = data[pos].toInt() and 0xFF
+        val length = when {
+            firstByte and 0x80 != 0 -> 1
+            firstByte and 0x40 != 0 -> 2
+            firstByte and 0x20 != 0 -> 3
+            firstByte and 0x10 != 0 -> 4
+            else -> return null
+        }
+        if (pos + length > data.size) return null
+        return Pair(data.copyOfRange(pos, pos + length), length)
+    }
+
+    private fun readVint(data: ByteArray, pos: Int): Pair<Long, Int>? {
+        if (pos >= data.size) return null
+        val firstByte = data[pos].toInt() and 0xFF
+        val length = when {
+            firstByte and 0x80 != 0 -> 1
+            firstByte and 0x40 != 0 -> 2
+            firstByte and 0x20 != 0 -> 3
+            firstByte and 0x10 != 0 -> 4
+            firstByte and 0x08 != 0 -> 5
+            firstByte and 0x04 != 0 -> 6
+            firstByte and 0x02 != 0 -> 7
+            firstByte and 0x01 != 0 -> 8
+            else -> return null
+        }
+        if (pos + length > data.size) return null
+
+        val mask = (0xFF shr length) and 0xFF
+        var value = (firstByte and mask).toLong()
+        for (i in 1 until length) {
+            value = (value shl 8) or (data[pos + i].toInt() and 0xFF).toLong()
+        }
+
+        val unknownSizeMask = (1L shl (7 * length)) - 1
+        if (value == unknownSizeMask) {
+            return Pair(-1L, length)
+        }
+
+        return Pair(value, length)
     }
 
     private suspend fun emitCluster(data: ByteArray) {
