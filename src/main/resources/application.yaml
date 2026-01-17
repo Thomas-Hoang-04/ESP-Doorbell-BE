@@ -23,6 +23,11 @@ streaming:
     cpu-used: 5
     opus-frame-size-ms: 20
     keyframe-max-dist: 30
+  udp:
+    port: ${STREAMING_UDP_PORT}
+  dtls:
+    cert-path: ${STREAMING_DTLS_CERT_PATH}
+    key-path: ${STREAMING_DTLS_KEY_PATH}
 
 app:
   storage:

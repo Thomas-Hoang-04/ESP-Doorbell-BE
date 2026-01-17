@@ -53,6 +53,8 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     implementation("com.google.firebase:firebase-admin:9.7.0")
     implementation("me.paulschwarz:spring-dotenv:5.1.0")
+    implementation("org.snf4j:snf4j-core:1.11.1")
+    implementation("org.snf4j:snf4j-tls:1.11.1")
 }
 
 kotlin {
