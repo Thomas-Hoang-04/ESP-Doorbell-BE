@@ -18,8 +18,6 @@ mqtt:
     ssl:
       enabled: true
       ca-path: certs/ca.pem
-      client-cert-path: certs/client.pem
-      client-key-path: certs/client.key
   client:
     id: esp-doorbell-server
     auto-reconnect: true

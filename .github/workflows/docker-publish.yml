@@ -52,3 +52,11 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Trigger Cloud Deployment
+        if: github.event_name != 'pull_request'
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.CLOUD_REPO_PAT }}
+          repository: Thomas-Hoang-04/ESP-Doorbell-Cloud
+          event-type: backend-updated
