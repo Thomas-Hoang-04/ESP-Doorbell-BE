@@ -2,6 +2,7 @@ package com.thomas.espdoorbell.doorbell.mqtt.service
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.thomas.espdoorbell.doorbell.mqtt.config.MqttProperties
+import com.thomas.espdoorbell.doorbell.mqtt.model.BellAckMessage
 import com.thomas.espdoorbell.doorbell.mqtt.model.FactoryResetMessage
 import com.thomas.espdoorbell.doorbell.mqtt.model.SetChimeMessage
 import com.thomas.espdoorbell.doorbell.mqtt.model.SetNightModeMessage
@@ -107,6 +108,17 @@ class MqttPublisherService(
             mqttProperties.topics.settings,
             deviceIdentifier
         )
+
+        return publishMessage(topic, message, mqttProperties.qos.default, retained = false)
+    }
+
+    suspend fun publishBellAck(deviceIdentifier: String, eventId: UUID): Boolean {
+        val message = BellAckMessage(
+            deviceId = deviceIdentifier,
+            eventId = eventId.toString()
+        )
+
+        val topic = "doorbell/$deviceIdentifier/bell-ack"
 
         return publishMessage(topic, message, mqttProperties.qos.default, retained = false)
     }

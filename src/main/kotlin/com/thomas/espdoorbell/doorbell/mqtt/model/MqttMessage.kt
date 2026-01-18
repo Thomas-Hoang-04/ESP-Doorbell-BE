@@ -116,3 +116,15 @@ data class FactoryResetMessage(
 
     override val timestamp: Long = System.currentTimeMillis()
 ) : MqttMessage()
+
+data class BellAckMessage(
+    val action: String = "bell_ack",
+
+    @field:JsonProperty("device_id")
+    override val deviceId: String,
+
+    override val timestamp: Long = System.currentTimeMillis(),
+
+    @field:JsonProperty("event_id")
+    val eventId: String
+) : MqttMessage()

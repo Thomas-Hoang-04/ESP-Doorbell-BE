@@ -1,26 +1,20 @@
 package com.thomas.espdoorbell.doorbell.event.controller
 
-import com.thomas.espdoorbell.doorbell.core.firebase.NotificationService
 import com.thomas.espdoorbell.doorbell.device.repository.DeviceRepository
 import com.thomas.espdoorbell.doorbell.device.service.DeviceService
 import com.thomas.espdoorbell.doorbell.event.dto.EventDto
-import com.thomas.espdoorbell.doorbell.event.request.EventCreateRequest
 import com.thomas.espdoorbell.doorbell.event.service.EventService
 import com.thomas.espdoorbell.doorbell.shared.principal.UserPrincipal
-import com.thomas.espdoorbell.doorbell.shared.types.EventType
-import com.thomas.espdoorbell.doorbell.user.repository.UserDeviceAccessRepository
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.reactive.awaitSingle
 import org.slf4j.LoggerFactory
+import org.springframework.core.io.buffer.DataBufferUtils
 import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
+import org.springframework.http.codec.multipart.FilePart
 import org.springframework.security.access.AccessDeniedException
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder
-import kotlinx.coroutines.reactive.awaitSingle
-import org.springframework.core.io.buffer.DataBufferUtils
-import org.springframework.http.codec.multipart.FilePart
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.server.ResponseStatusException
 import java.time.OffsetDateTime
@@ -33,8 +27,6 @@ class EventController(
     private val deviceService: DeviceService,
     private val deviceRepository: DeviceRepository,
     private val passwordEncoder: Argon2PasswordEncoder,
-    private val userDeviceAccessRepository: UserDeviceAccessRepository,
-    private val notificationService: NotificationService
 ) {
     private val logger = LoggerFactory.getLogger(EventController::class.java)
     @GetMapping
@@ -80,11 +72,12 @@ class EventController(
         return eventService.getEventCountByDevice(deviceId)
     }
 
-    @PostMapping(value = ["/bell-ring"], consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
-    suspend fun handleBellRing(
+    @PostMapping(value = ["/upload-image"], consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
+    suspend fun uploadEventImage(
         @RequestPart("image") image: FilePart,
         @RequestPart("device_id") deviceId: String,
-        @RequestPart("device_key") deviceKey: String
+        @RequestPart("device_key") deviceKey: String,
+        @RequestPart("event_id") eventIdStr: String
     ): EventDto {
         val device = deviceRepository.findByDeviceId(deviceId)
             ?: throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unknown device")
@@ -93,32 +86,20 @@ class EventController(
             throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid device key")
         }
 
-        logger.info("Bell ring with image received from device: $deviceId")
+        val eventId = try {
+            UUID.fromString(eventIdStr)
+        } catch (_: IllegalArgumentException) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid event_id format")
+        }
 
-        // 1. Create the event
-        val event = eventService.createEvent(EventCreateRequest(
-            deviceId = device.id!!,
-            eventType = EventType.DOORBELL_RING
-        ))
+        logger.info("Image upload for event $eventId from device: $deviceId")
 
-        // 2. Read image bytes from FilePart and save
         val dataBuffer = DataBufferUtils.join(image.content()).awaitSingle()
         val imageBytes = ByteArray(dataBuffer.readableByteCount())
         dataBuffer.read(imageBytes)
         DataBufferUtils.release(dataBuffer)
-        eventService.saveEventImage(event.id, imageBytes)
+        eventService.saveEventImage(eventId, imageBytes)
 
-        // 3. Send notifications
-        val usersWithAccess = userDeviceAccessRepository.findAllByDevice(device.id).map { it.user }.toList()
-        if (usersWithAccess.isNotEmpty()) {
-            notificationService.sendBroadcastNotification(
-                userIds = usersWithAccess,
-                title = "Doorbell Alert",
-                body = "Someone is at the ${device.displayName}!",
-                data = mapOf("event_id" to event.id.toString())
-            )
-        }
-
-        return eventService.getEvent(event.id)
+        return eventService.getEvent(eventId)
     }
 }
