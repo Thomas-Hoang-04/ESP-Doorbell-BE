@@ -1,5 +1,6 @@
 package com.thomas.espdoorbell.doorbell.core.firebase
 
+import com.google.firebase.messaging.AndroidConfig
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.FirebaseMessagingException
 import com.google.firebase.messaging.Message
@@ -112,6 +113,11 @@ class NotificationService(
                 val message = Message.builder()
                     .setToken(token)
                     .putAllData(payload)
+                    .setAndroidConfig(
+                        AndroidConfig.builder()
+                            .setPriority(AndroidConfig.Priority.HIGH)
+                            .build()
+                    )
                     .build()
 
                 firebaseMessaging.send(message)
