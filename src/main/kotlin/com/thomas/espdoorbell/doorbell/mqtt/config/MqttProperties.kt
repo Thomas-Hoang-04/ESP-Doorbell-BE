@@ -43,6 +43,7 @@ data class MqttProperties(
         val heartbeat: String,
         val bellEvent: String,
         val settings: String,
+        val iceOffer: String = "doorbell/+/ice/offer",
     )
 
     data class QosSettings(

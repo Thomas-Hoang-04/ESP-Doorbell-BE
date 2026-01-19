@@ -15,21 +15,12 @@ spring:
 server:
   forward-headers-strategy: framework
 
-streaming:
-  websocket-base-url: wss://doorbell-thomas.site
-  gstreamer:
-    video-bitrate: 1M
-    audio-bitrate: 128k
-    cpu-used: 5
-    opus-frame-size-ms: 20
-    keyframe-max-dist: 30
-  udp:
-    port: ${STREAMING_UDP_PORT}
-  dtls:
-    cert-path: ${STREAMING_DTLS_CERT_PATH}
-    key-path: ${STREAMING_DTLS_KEY_PATH}
-
 app:
+  ice:
+    turn-host: ${TURN_SERVER_HOST}
+    turn-port: ${TURN_SERVER_PORT}
+    turn-username: ${TURN_USERNAME}
+    turn-password: ${TURN_PASSWORD}
   storage:
     upload-dir: uploads
   api:

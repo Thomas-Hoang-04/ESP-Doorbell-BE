@@ -4,8 +4,6 @@ import com.thomas.espdoorbell.doorbell.device.service.DeviceService
 import com.thomas.espdoorbell.doorbell.mqtt.service.MqttPublisherService
 import com.thomas.espdoorbell.doorbell.shared.principal.UserPrincipal
 import com.thomas.espdoorbell.doorbell.streaming.api.dto.StreamResponse
-import com.thomas.espdoorbell.doorbell.streaming.config.StreamingProperties
-import com.thomas.espdoorbell.doorbell.streaming.pipeline.DeviceStreamManager
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -18,9 +16,7 @@ import java.util.UUID
 @RequestMapping("/api/stream")
 class StreamController(
     private val mqttPublisherService: MqttPublisherService,
-    private val deviceService: DeviceService,
-    private val streamingProperties: StreamingProperties,
-    private val deviceStreamManager: DeviceStreamManager
+    private val deviceService: DeviceService
 ) {
     private val logger = LoggerFactory.getLogger(StreamController::class.java)
 
@@ -60,13 +56,8 @@ class StreamController(
                 .body(StreamResponse(success = false, message = "Failed to send command"))
         }
 
-        val websocketUrl = "${streamingProperties.websocketBaseUrl}/ws/stream/outbound/$deviceId"
         logger.info("Stream start successful for device {}", deviceId)
-
-        return ResponseEntity.ok(StreamResponse(
-            success = true,
-            websocketUrl = websocketUrl
-        ))
+        return ResponseEntity.ok(StreamResponse(success = true))
     }
 
     @PostMapping("/{deviceId}/stop")
@@ -89,11 +80,8 @@ class StreamController(
         }
 
         val published = mqttPublisherService.publishStreamStop(device.deviceIdentifier)
-
-        deviceStreamManager.stopPipeline(deviceId)
-
         if (!published) {
-            logger.warn("Failed to send MQTT stop command but pipeline was stopped locally")
+            logger.warn("Failed to send MQTT stop command")
         }
 
         return ResponseEntity.ok(StreamResponse(success = true))

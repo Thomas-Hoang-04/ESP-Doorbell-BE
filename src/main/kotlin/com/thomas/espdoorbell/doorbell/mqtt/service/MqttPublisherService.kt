@@ -151,6 +151,31 @@ class MqttPublisherService(
             false
         }
     }
+    
+    suspend fun publishRaw(topic: String, payload: String, qos: Int = 1): Boolean {
+        return try {
+            if (!mqttConnectionManager.ensureConnected()) {
+                logger.error("Cannot publish message - MQTT client not connected")
+                return false
+            }
+            
+            val mqttMessage = MqttMessage().apply {
+                this.payload = payload.toByteArray()
+                this.qos = qos
+                isRetained = false
+            }
+
+            withContext(Dispatchers.IO) {
+                mqttClient.publish(topic, mqttMessage)
+            }
+            
+            logger.info("Published raw message to topic: $topic, qos: $qos")
+            true
+        } catch (e: Exception) {
+            logger.error("Failed to publish raw message to topic: $topic", e)
+            false
+        }
+    }
 }
 
 

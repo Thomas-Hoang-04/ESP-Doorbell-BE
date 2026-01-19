@@ -55,6 +55,7 @@ dependencies {
     implementation("me.paulschwarz:spring-dotenv:5.1.0")
     implementation("org.snf4j:snf4j-core:1.11.1")
     implementation("org.snf4j:snf4j-tls:1.11.1")
+    implementation("org.jitsi:ice4j:3.2-12-gc2cbf61")
 }
 
 kotlin {
