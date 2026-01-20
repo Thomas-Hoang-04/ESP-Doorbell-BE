@@ -38,7 +38,7 @@ class MqttPublisherService(
             deviceIdentifier
         )
 
-        return publishMessage(topic, message, mqttProperties.qos.default, retained = false)
+        return publishMessage(topic, message, mqttProperties.qos.default, retained = true)
     }
 
     suspend fun publishStreamStop(deviceIdentifier: String): Boolean {
@@ -49,7 +49,7 @@ class MqttPublisherService(
             deviceIdentifier
         )
 
-        return publishMessage(topic, message, mqttProperties.qos.default, retained = false)
+        return publishMessage(topic, message, mqttProperties.qos.default, retained = true)
     }
 
     suspend fun publishSetChime(deviceIdentifier: String, chimeIndex: Int): Boolean {
@@ -63,7 +63,7 @@ class MqttPublisherService(
             deviceIdentifier
         )
 
-        return publishMessage(topic, message, mqttProperties.qos.default, retained = false)
+        return publishMessage(topic, message, mqttProperties.qos.default, retained = true)
     }
 
     suspend fun publishSetVolume(deviceIdentifier: String, volumeLevel: Int): Boolean {
@@ -77,7 +77,7 @@ class MqttPublisherService(
             deviceIdentifier
         )
 
-        return publishMessage(topic, message, mqttProperties.qos.default, retained = false)
+        return publishMessage(topic, message, mqttProperties.qos.default, retained = true)
     }
 
     suspend fun publishSetNightMode(
@@ -98,7 +98,7 @@ class MqttPublisherService(
             deviceIdentifier
         )
 
-        return publishMessage(topic, message, mqttProperties.qos.default, retained = false)
+        return publishMessage(topic, message, mqttProperties.qos.default, retained = true)
     }
 
     suspend fun publishFactoryReset(deviceIdentifier: String): Boolean {
@@ -109,7 +109,7 @@ class MqttPublisherService(
             deviceIdentifier
         )
 
-        return publishMessage(topic, message, mqttProperties.qos.default, retained = false)
+        return publishMessage(topic, message, mqttProperties.qos.default, retained = true)
     }
 
     suspend fun publishBellAck(deviceIdentifier: String, eventId: UUID): Boolean {
@@ -120,7 +120,7 @@ class MqttPublisherService(
 
         val topic = "doorbell/$deviceIdentifier/bell-ack"
 
-        return publishMessage(topic, message, mqttProperties.qos.default, retained = false)
+        return publishMessage(topic, message, mqttProperties.qos.default, retained = true)
     }
 
     @Suppress("SameParameterValue")
@@ -162,7 +162,7 @@ class MqttPublisherService(
             val mqttMessage = MqttMessage().apply {
                 this.payload = payload.toByteArray()
                 this.qos = qos
-                isRetained = false
+                isRetained = true
             }
 
             withContext(Dispatchers.IO) {
